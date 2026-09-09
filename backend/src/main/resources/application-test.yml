@@ -1,0 +1,9 @@
+spring:
+  config:
+    activate:
+      on-profile: test
+  jpa:
+    hibernate:
+      ddl-auto: validate
+payflow:
+  allowed-origins: http://localhost:5173

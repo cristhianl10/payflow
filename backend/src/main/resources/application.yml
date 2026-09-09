@@ -1,0 +1,33 @@
+spring:
+  application:
+    name: payflow-backend
+  profiles:
+    default: dev
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate.jdbc.time_zone: UTC
+  flyway:
+    enabled: true
+server:
+  port: ${SERVER_PORT:8080}
+  forward-headers-strategy: none
+  error:
+    include-message: never
+    include-stacktrace: never
+    include-binding-errors: never
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+payflow:
+  default-initial-balance: ${PAYFLOW_DEFAULT_INITIAL_BALANCE:10000.00}
+  currency: USD

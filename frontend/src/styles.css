@@ -1,0 +1,44 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+    --color-canvas: 246 247 249;
+    --color-surface: 255 255 255;
+    --color-ink: 20 43 69;
+    --color-muted: 82 96 112;
+    --color-brand: 24 62 110;
+    --color-line: 212 218 226;
+  }
+
+  body {
+    @apply m-0 bg-canvas font-sans text-ink antialiased;
+  }
+
+  :focus-visible {
+    outline: 3px solid rgb(var(--color-brand));
+    outline-offset: 4px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation: none !important;
+      transition: none !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  .skip-link {
+    @apply sr-only;
+  }
+
+  .skip-link:focus {
+    @apply not-sr-only fixed left-4 top-4 z-50 rounded-lg bg-surface px-4 py-3 text-ink;
+  }
+}

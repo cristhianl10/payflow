@@ -1,0 +1,7 @@
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/payflow}
+    username: ${DB_USERNAME:payflow}
+    password: ${DB_PASSWORD:payflow_dev_only}
+payflow:
+  allowed-origins: ${FRONTEND_URL:http://localhost:5173}
