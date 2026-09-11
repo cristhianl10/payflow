@@ -27,6 +27,10 @@ export const sessionStore = {
   },
 };
 
+export function updateSessionUser(user: Session['user']) {
+  if (session) setSession({ ...session, user });
+}
+
 function setSession(value: Session | null) {
   session = value;
   listeners.forEach((listener) => listener());
