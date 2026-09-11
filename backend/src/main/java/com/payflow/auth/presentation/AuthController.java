@@ -51,6 +51,17 @@ public class AuthController {
     @GetMapping("/users/me")
     AuthService.UserView me(@AuthenticationPrincipal Jwt jwt) { return auth.me(UUID.fromString(jwt.getSubject())); }
 
+    @PatchMapping("/users/me")
+    AuthService.UserView updateProfile(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody ProfileRequest request) {
+        return auth.updateProfile(UUID.fromString(jwt.getSubject()), request.firstName, request.lastName);
+    }
+
+    @PostMapping("/users/me/password")
+    ResponseEntity<Void> changePassword(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody ChangePasswordRequest request) {
+        auth.changePassword(UUID.fromString(jwt.getSubject()), request.currentPassword, request.newPassword);
+        return ResponseEntity.noContent().build();
+    }
+
     private ResponseEntity<AuthView> response(TokenService.Tokens issued, int status) {
         return ResponseEntity.status(status).header(HttpHeaders.SET_COOKIE,
                 cookie(issued.refreshToken(), Duration.between(Instant.now(), issued.sessionExpiresAt())).toString())
@@ -67,6 +78,10 @@ public class AuthController {
             @NotBlank @Size(min = 10, max = 72) String password) {}
     public record LoginRequest(@NotBlank @Email @Size(max = 254) String email,
             @NotBlank @Size(max = 72) String password) {}
+    public record ProfileRequest(@NotBlank @Size(max = 100) String firstName,
+            @NotBlank @Size(max = 100) String lastName) {}
+    public record ChangePasswordRequest(@NotBlank @Size(max = 72) String currentPassword,
+            @NotBlank @Size(min = 10, max = 72) String newPassword) {}
     public record AuthView(String accessToken, Instant expiresAt, AuthService.UserView user) {}
     public record CsrfView(String headerName, String token) {}
 }

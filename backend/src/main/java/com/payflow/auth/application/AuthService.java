@@ -77,6 +77,28 @@ public class AuthService {
         return new UserView(user.publicId(), user.firstName(), user.lastName(), user.email());
     }
 
+    @Transactional
+    public UserView updateProfile(UUID id, String firstName, String lastName) {
+        UserEntity user = users.findById(id).orElseThrow(() -> new BusinessException(401, "UNAUTHENTICATED", "Please sign in again."));
+        user.updateProfile(firstName.strip(), lastName.strip());
+        audit.record("PROFILE_UPDATED", id, id);
+        return new UserView(user.publicId(), user.firstName(), user.lastName(), user.email());
+    }
+
+    @Transactional
+    public void changePassword(UUID id, String currentPassword, String newPassword) {
+        if (newPassword.getBytes(StandardCharsets.UTF_8).length > 72) {
+            throw new BusinessException(400, "PASSWORD_TOO_LONG", "Use a password of at most 72 UTF-8 bytes.");
+        }
+        UserEntity user = users.findById(id).orElseThrow(() -> new BusinessException(401, "UNAUTHENTICATED", "Please sign in again."));
+        if (!passwords.matches(currentPassword, user.passwordHash())) {
+            throw new BusinessException(401, "INVALID_CREDENTIALS", "Your current password is incorrect.");
+        }
+        user.changePassword(passwords.encode(newPassword));
+        jdbc.update("UPDATE auth_sessions SET revoked_at = COALESCE(revoked_at, CURRENT_TIMESTAMP) WHERE user_id = ?", id);
+        audit.record("PASSWORD_CHANGED", id, id);
+    }
+
     public static String normalizeEmail(String email) { return email.strip().toLowerCase(Locale.ROOT); }
     public record UserView(String publicId, String firstName, String lastName, String email) {}
 }
