@@ -4,9 +4,9 @@ An educational financial sandbox built with Java 21, Spring Boot, React, and Pos
 
 ## Current milestone
 
-The foundation is executable: Maven Wrapper, PostgreSQL/Flyway schema, Money value object, deny-by-default HTTP security, health endpoint, React welcome screen, Tailwind, and automated tests.
+The sandbox MVP is executable end to end: registration and login, short-lived access tokens with rotating refresh cookies, one funded USD wallet per account, balanced ledger postings, atomic idempotent transfers, activity history, and a responsive React interface. No real money is processed.
 
-Registration, login, wallets as API resources, ledger posting, transfers, and transaction history are the next increments. The welcome screen labels them as upcoming; there are no demo accounts yet.
+The database schema is owned by Flyway; it is created automatically at application startup. There are no demo accounts: create two sandbox accounts to try a transfer.
 
 - [MVP decisions](docs/adr/ADR-000-mvp-technical-decisions.md)
 - [Locking and opening-funds decision](docs/adr/ADR-001-wallet-locking-and-opening-funds.md)
@@ -116,7 +116,7 @@ The default dev profile has local-only database defaults. The prod profile requi
 
 GET /actuator/health is public and returns only basic status. All other routes are denied until authentication is implemented. CSRF stays enabled; CORS accepts only the configured frontend origin. No default login credentials are generated.
 
-JWT variables in .env.example reserve the upcoming auth configuration; JWT issuance and refresh cookies are not implemented in this milestone.
+JWT signing and refresh-cookie rotation are implemented. Set a unique `JWT_SECRET` of at least 32 bytes outside local development; never use the example value in production.
 
 ## Backend image
 
@@ -124,7 +124,7 @@ JWT variables in .env.example reserve the upcoming auth configuration; JWT issua
 docker build -t payflow-backend:local backend
 ```
 
-The multi-stage image compiles and runs with Java 21 as a non-root user. Image creation skips tests; run verify before building. Compose currently starts PostgreSQL only; application containers and public deployment come later.
+The multi-stage image compiles and runs with Java 21 as a non-root user. Image creation skips tests; run verify before building. Compose starts PostgreSQL for local development; public hosting, TLS and a production domain still need to be selected.
 
 ## Repository
 

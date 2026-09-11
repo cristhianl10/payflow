@@ -3,16 +3,16 @@
 ## Delivered boundary
 
 - Java 21 target, Spring Boot 3.5.16, Maven Wrapper 3.9.16.
-- Flyway V1 creates users, roles, user_roles, and wallets in PostgreSQL 16.
+- Flyway V1–V3 creates users, roles, wallets, ledger accounts and entries, sessions, refresh-token hashes, idempotency requests and audit logs in PostgreSQL 16.
 - Framework-independent Money and account/role status enums.
-- Spring Security denies all routes except GET /actuator/health. No generated development user, HTTP Basic, or form login is enabled.
+- Spring Security uses bearer JWTs for authenticated API routes; no generated development user, HTTP Basic, or form login is enabled.
 - CSRF remains enabled. CORS accepts only configured explicit origins with credentials.
 - API error structure and server-generated correlation IDs are shared infrastructure.
-- React welcome page, router, QueryClient, Tailwind semantic colors, linting, formatting, tests, and production build.
+- React welcome, authentication, dashboard, wallet, transfer, history and receipt screens, router, QueryClient, Tailwind semantic colors, linting, formatting, tests, and production build.
 - GitHub Actions checks backend integration tests and frontend validation.
 - Dockerfile builds the backend with Java 21. Compose currently provides PostgreSQL only.
 
-No registration, login, JWT issuance, JPA entity mappings, ledger posting, transfers, or wallet endpoints are delivered in this phase. There is no bypass account or unsecured financial API. Hibernate validation becomes meaningful for mapped entities when those are introduced; the current schema is checked directly by PostgreSQL integration tests.
+Registration atomically creates an account, active USD wallet and balanced sandbox grant. Login issues a short-lived access JWT and an HttpOnly refresh cookie; refresh tokens are stored only as hashes, rotate on use and revoke their session on replay. Transfers lock both wallets in a stable order, post a balanced immutable journal operation, update materialized balances and store the idempotent response. There is no bypass account or unsecured financial API.
 
 ## Module ownership
 
@@ -54,4 +54,4 @@ Verified 2026-09-09:
 
 ## Next increment
 
-Implement registration and login as a protected vertical slice. Add JPA mappings, password hashing, the ledger accounts/grant schema, an atomic registration use case, JWT verification, refresh-token hashing/rotation/revocation, and authentication forms. Define the refresh cookie/CSRF contract and test it before opening those endpoints. After that, add synchronous transfer posting and idempotency with the required concurrency tests.
+Complete account self-service and production delivery: profile and password management, a provider-backed password-reset email flow, a minimal administrator surface, application containers and deployment documentation. Email delivery and a public production environment require provider credentials, domain and hosting decisions.
