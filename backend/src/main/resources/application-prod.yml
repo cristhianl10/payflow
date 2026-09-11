@@ -8,3 +8,6 @@ spring:
     password: ${DB_PASSWORD}
 payflow:
   allowed-origins: ${FRONTEND_URL}
+  auth:
+    secret: ${JWT_SECRET}
+    secure-cookie: true

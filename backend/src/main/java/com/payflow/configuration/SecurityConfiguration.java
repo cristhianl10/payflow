@@ -3,6 +3,7 @@ package com.payflow.configuration;
 import java.util.List;
 
 import com.payflow.shared.presentation.ApiError;
+import com.payflow.auth.application.TokenService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -14,6 +15,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -21,11 +23,21 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @Configuration(proxyBeanMethods = false)
 public class SecurityConfiguration {
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http, ObjectMapper objectMapper) throws Exception {
-        // Registration and JWT authentication will explicitly open their own routes later.
-        // CSRF remains enabled until the cookie/token contract is implemented and tested.
+    SecurityFilterChain securityFilterChain(HttpSecurity http, ObjectMapper objectMapper, TokenService tokens,
+            @Value("${payflow.auth.secure-cookie:false}") boolean secure) throws Exception {
+        var csrf = new CookieCsrfTokenRepository();
+        csrf.setHeaderName("X-CSRF-TOKEN");
+        csrf.setCookiePath("/api");
+        csrf.setCookieCustomizer(cookie -> cookie.httpOnly(true).secure(secure).sameSite("Lax"));
+        org.springframework.security.web.AuthenticationEntryPoint unauthenticated = (request, response, exception) -> {
+            response.setStatus(401);
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            objectMapper.writeValue(response.getOutputStream(),
+                    ApiError.create(401, "UNAUTHENTICATED", "Authentication is required.", request));
+        };
         return http
                 .cors(Customizer.withDefaults())
+                .csrf(config -> config.csrfTokenRepository(csrf))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
@@ -33,14 +45,17 @@ public class SecurityConfiguration {
                 .requestCache(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(HttpMethod.GET, "/actuator/health").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/auth/csrf").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/register", "/api/v1/auth/login",
+                                "/api/v1/auth/refresh", "/api/v1/auth/logout").permitAll()
+                        .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/v1/users/me", "/api/v1/wallets/**", "/api/v1/transfers/**",
+                                "/api/v1/transactions/**").hasRole("USER")
                         .anyRequest().denyAll())
+                .oauth2ResourceServer(resource -> resource.jwt(jwt -> jwt.jwtAuthenticationConverter(tokens::authenticate))
+                        .authenticationEntryPoint(unauthenticated))
                 .exceptionHandling(errors -> errors
-                        .authenticationEntryPoint((request, response, exception) -> {
-                            response.setStatus(401);
-                            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-                            objectMapper.writeValue(response.getOutputStream(),
-                                    ApiError.create(401, "UNAUTHENTICATED", "Authentication is required.", request));
-                        })
+                        .authenticationEntryPoint(unauthenticated)
                         .accessDeniedHandler((request, response, exception) -> {
                             response.setStatus(403);
                             response.setContentType(MediaType.APPLICATION_JSON_VALUE);

@@ -1,6 +1,7 @@
 package com.payflow.shared.presentation;
 
 import jakarta.servlet.http.HttpServletRequest;
+import com.payflow.shared.domain.BusinessException;
 import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,6 +16,12 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class ApiExceptionHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(ApiExceptionHandler.class);
+
+    @ExceptionHandler(BusinessException.class)
+    ResponseEntity<ApiError> businessError(BusinessException exception, HttpServletRequest request) {
+        return ResponseEntity.status(exception.status()).body(
+                ApiError.create(exception.status(), exception.code(), exception.getMessage(), request));
+    }
 
     @ExceptionHandler({MethodArgumentNotValidException.class, ConstraintViolationException.class,
             HttpMessageNotReadableException.class})

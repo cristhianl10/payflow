@@ -23,6 +23,7 @@ public class CorrelationIdFilter extends OncePerRequestFilter {
         String traceId = UUID.randomUUID().toString();
         request.setAttribute(ATTRIBUTE, traceId);
         response.setHeader("X-Correlation-ID", traceId);
+        response.setHeader("Cache-Control", "no-store");
         try (MDC.MDCCloseable ignored = MDC.putCloseable("traceId", traceId)) {
             chain.doFilter(request, response);
         }

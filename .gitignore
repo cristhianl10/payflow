@@ -6,6 +6,9 @@ backend/target/
 frontend/node_modules/
 frontend/dist/
 frontend/coverage/
+frontend/test-results/
+frontend/playwright-report/
+.impeccable/review/
 *.tsbuildinfo
 
 # Local configuration
