@@ -26,7 +26,7 @@
     margin: 0;
     background: rgb(var(--color-canvas));
     color: rgb(var(--color-ink));
-    font-family: "Avenir Next", Avenir, "Segoe UI", sans-serif;
+    font-family: 'Avenir Next', Avenir, 'Segoe UI', sans-serif;
     font-size: 14px;
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
@@ -1800,6 +1800,25 @@ body::before {
 }
 
 /* Night-stage overrides remain last so legacy component rules inherit this world. */
+/* Keep secondary text and quiet actions readable on the dark canvas. */
+.button-quiet,
+.text-link,
+.activity-filters button:hover,
+.activity-filters .filter-active {
+  color: #b9d1ff;
+}
+.button-quiet:hover:not(:disabled),
+.button-secondary:hover:not(:disabled) {
+  color: #f5f8ff;
+}
+.field-hint,
+.optional,
+.detail-list dt,
+.activity-description,
+.activity-row time {
+  color: #c2d0e5;
+}
+
 :root {
   --color-canvas: 10 15 28;
   --color-surface: 20 28 46;
@@ -1898,7 +1917,9 @@ body::before {
 .receipt,
 .activity-list,
 .balance-panel,
-.receive-panel {
+.receive-panel,
+.welcome-route,
+.empty-state {
   background: rgba(18, 27, 47, 0.84);
   border-color: rgba(185, 203, 237, 0.19);
   box-shadow: 0 20px 45px rgba(0, 0, 0, 0.2);
@@ -1922,6 +1943,12 @@ body::before {
 .activity-list a:hover {
   background: rgba(139, 174, 246, 0.12);
 }
+.activity-row:hover {
+  background: rgba(139, 174, 246, 0.16);
+}
+.movement-summary > p {
+  color: #d5e2f7;
+}
 .button-primary {
   background: #dbe7ff;
   color: #0a1831;
@@ -1932,7 +1959,7 @@ body::before {
 .button-secondary {
   background: transparent;
   color: #eaf0ff;
-  border-color: rgba(207, 221, 255, 0.45);
+  border-color: #a9bfdf;
 }
 .button-secondary:hover:not(:disabled),
 .button-quiet:hover:not(:disabled) {
