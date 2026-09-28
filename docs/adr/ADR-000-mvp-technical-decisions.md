@@ -5,7 +5,7 @@
 
 ## Scope
 
-The MVP is a local, full-stack sandbox for registration, authentication, one USD wallet per user, synchronous internal transfers, transaction history, a double-entry ledger, and a basic dashboard. It does not process real money and must display the sandbox disclaimer.
+The MVP is a full-stack sandbox, runnable locally and deployed for public demonstration for registration, authentication, one USD wallet per user, synchronous internal transfers, transaction history, a double-entry ledger, and a basic dashboard. It does not process real money and must display the sandbox disclaimer.
 
 Risk scoring, multi-currency conversion, email workflows, Redis, RabbitMQ, and advanced analytics are explicitly deferred.
 
@@ -23,7 +23,7 @@ The MVP supports USD only, but currency remains part of the domain model. Moneta
 
 Spring Security is the authority for authentication and authorization. Access JWTs are short-lived and kept in frontend memory. Refresh tokens are sent through an HttpOnly cookie, are Secure in production, use an environment-appropriate SameSite policy, and are stored in PostgreSQL only as hashes. Refresh tokens are revocable and expire. Roles are enforced server-side; frontend route guards are UX only.
 
-Email verification, password recovery, SMTP, and related flows are prepared for later but do not block MVP login after registration.
+Email verification, password recovery and SMTP are deferred features; they do not block MVP login after registration. The application remains a simulated sandbox and does not process real money.
 
 ## Wallets and transactions
 
@@ -59,4 +59,4 @@ The testing pyramid starts with domain unit tests, application/integration tests
 
 ## Deferred decisions
 
-Redis, RabbitMQ, risk engine, exchange-rate provider, email, WebSockets, advanced analytics, multi-currency, and public deployment will be introduced only after the core MVP is stable and documented with a new decision record where appropriate.
+Email verification, password recovery, SMTP, MFA, Redis, RabbitMQ, risk engine, exchange-rate provider, WebSockets, advanced analytics and multi-currency remain deferred. Public deployment is complete for the simulated sandbox through Vercel, Render and Render PostgreSQL. Real-money processing and direct bank integration are outside the project scope and would require regulated providers, private or commercial APIs, credentials and compliance controls.
