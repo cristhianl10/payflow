@@ -1,43 +1,85 @@
 # PayFlow
 
-An educational financial sandbox built with Java 21, Spring Boot, React, and PostgreSQL. No real money is processed by PayFlow.
+PayFlow es un sandbox financiero educativo desplegado en producción. Utiliza Java 21, Spring Boot, React, TypeScript y PostgreSQL. Simula saldos y transferencias internas; no procesa dinero real ni se conecta a bancos.
 
-## Current milestone
+## Alcance actual
 
-The sandbox MVP is executable end to end: registration and login, short-lived access tokens with rotating refresh cookies, one funded USD wallet per account, balanced ledger postings, atomic idempotent transfers, activity history, and a responsive React interface. No real money is processed.
+El MVP está operativo de extremo a extremo:
 
-The database schema is owned by Flyway; it is created automatically at application startup. There are no demo accounts: create two sandbox accounts to try a transfer.
+- Registro e inicio de sesión.
+- JWT de acceso de corta duración.
+- Refresh tokens rotativos almacenados como hashes.
+- Cookie HttpOnly y Secure en producción.
+- Una billetera USD por cuenta con saldo inicial simulado.
+- Transferencias internas atómicas e idempotentes entre usuarios.
+- Ledger de doble partida e historial de operaciones.
+- Exportación del historial a CSV.
+- Cambio de contraseña.
+- Listado y revocación de sesiones activas.
+- Auditoría de eventos de seguridad.
+- CSRF, CORS explícito, autorización por roles y rate limiting para autenticación.
+- Interfaz responsive en React.
 
-- [MVP decisions](docs/adr/ADR-000-mvp-technical-decisions.md)
-- [Locking and opening-funds decision](docs/adr/ADR-001-wallet-locking-and-opening-funds.md)
-- [Architecture and next increment](docs/architecture/foundation.md)
+El flujo de transferencia entre dos cuentas sandbox fue probado exitosamente. Las cuentas representan usuarios de prueba y los fondos son completamente simulados.
 
-## Prerequisites
+## Producción
 
-- JDK 21 for backend builds (set JAVA_HOME to your JDK installation).
-- Node.js 24 and npm (frontend/.nvmrc is provided).
-- Docker with Compose, or Podman for the alternative workflow below.
-- Maven is downloaded automatically by the wrapper on first use.
+- Frontend: [payflow-alpha-brown.vercel.app](https://payflow-alpha-brown.vercel.app)
+- Backend: [payflow-backend-p76b.onrender.com](https://payflow-backend-p76b.onrender.com)
+- Health-check: [actuator/health](https://payflow-backend-p76b.onrender.com/actuator/health)
+- Base de datos: PostgreSQL administrado por Render.
+- Backend: imagen Docker desplegada en Render.
+- Frontend: build de React desplegado en Vercel.
 
-All services run locally. Internet access is needed initially to download dependencies and container images.
+El plan gratuito de Render puede suspender el backend por inactividad. La primera solicitud después de ese periodo puede tardar mientras el servicio despierta.
 
-## Start with Docker
+## Limitaciones deliberadas
 
-From the repository root:
+PayFlow no maneja dinero real, pagos, retiros, depósitos ni transferencias bancarias. La integración con dinero real queda fuera del alcance del proyecto porque requeriría una entidad financiera o proveedor de pagos autorizado, credenciales, cumplimiento regulatorio y una API privada o comercial.
+
+También están pendientes:
+
+- Verificación de correo electrónico.
+- Recuperación de contraseña mediante correo.
+- Configuración SMTP o proveedor de email.
+- Autenticación multifactor.
+- Panel administrativo completo.
+- Notificaciones y controles antifraude avanzados.
+
+## Tecnologías
+
+- Backend: Java 21, Spring Boot 3.5, Spring Security, Spring Data JPA, Hibernate y Maven.
+- Base de datos: PostgreSQL 16 y Flyway.
+- Frontend: React, TypeScript, Vite, React Router, TanStack Query, React Hook Form, Zod, Tailwind CSS y Vitest.
+- Infraestructura: Docker, Docker Compose, Render y Vercel.
+- Arquitectura: monolito modular con módulos de auth, user, wallet, transfer, transaction, ledger, shared y configuration.
+
+## Ejecutar localmente
+
+### Requisitos
+
+- JDK 21.
+- Node.js y npm.
+- Docker con Compose o Podman.
+- Maven se descarga automáticamente mediante el wrapper.
+
+### Backend y base de datos
+
+Desde la raíz:
 
 ```bash
 cp .env.example .env
 docker compose up -d postgres
 ```
 
-In a backend terminal:
+En otra terminal:
 
 ```bash
 cd backend
 ./mvnw spring-boot:run
 ```
 
-In a frontend terminal:
+### Frontend
 
 ```bash
 cd frontend
@@ -46,56 +88,17 @@ npm ci
 npm run dev
 ```
 
-Open http://localhost:5173. Check the backend at http://localhost:8080/actuator/health.
+Abrir http://localhost:5173. El backend local queda disponible en http://localhost:8080 y su health-check en http://localhost:8080/actuator/health.
 
-The dev profile defaults match .env.example. Compose reads the root .env automatically, but Spring Boot does not. If you change database credentials, host, or port, export the matching DB_URL, DB_USERNAME, and DB_PASSWORD in the backend terminal. Vite reads frontend/.env for its optional /api development proxy.
+## Verificación
 
-## Podman alternative
-
-Podman is supported through its Docker-compatible API for tests. To start a persistent local development database, copy the root .env.example to .env and run from the root:
-
-```bash
-podman run -d --name payflow-postgres-dev \
-  --env-file .env \
-  -p 127.0.0.1:5432:5432 \
-  -v payflow-postgres-dev-data:/var/lib/postgresql/data \
-  docker.io/library/postgres:16-alpine
-```
-
-For later starts use `podman start payflow-postgres-dev`. Stop it with `podman stop payflow-postgres-dev`. The named volume retains development data. Adjust the published port and DB_URL together if 5432 is occupied.
-
-## Verify
-
-Backend unit tests, without a container runtime:
+Backend:
 
 ```bash
 cd backend
 ./mvnw test
-```
-
-Full backend verification, including isolated PostgreSQL integration tests:
-
-```bash
-cd backend
 ./mvnw verify
 ```
-
-Tests ending in Test run with Surefire; IT tests run with Failsafe during verify. Integration tests require a working container runtime and are not silently skipped if it is missing.
-
-For rootless Podman, run this service in a separate terminal:
-
-```bash
-podman system service --time=0 unix:///tmp/payflow-podman.sock
-```
-
-Then run in backend:
-
-```bash
-DOCKER_HOST=unix:///tmp/payflow-podman.sock \
-TESTCONTAINERS_RYUK_DISABLED=true ./mvnw verify
-```
-
-The JUnit-managed PostgreSQL container is stopped on normal test completion. Ryuk is disabled only for this rootless Podman invocation; Docker/CI uses the normal cleanup mechanism. Stop the temporary Podman API with Ctrl+C when finished.
 
 Frontend:
 
@@ -108,30 +111,42 @@ npm test
 npm run build
 ```
 
-GitHub Actions runs these checks on pushes and pull requests. The workflow has not been run remotely until the repository is pushed.
+## Configuración y seguridad
 
-## Configuration and security
+En producción se configuran mediante variables de entorno:
 
-The default dev profile has local-only database defaults. The prod profile requires DB_URL, DB_USERNAME, DB_PASSWORD, and FRONTEND_URL. Keep secrets in environment variables. Never commit .env files.
+- `DB_HOST`
+- `DB_PORT`
+- `DB_NAME`
+- `DB_USERNAME`
+- `DB_PASSWORD`
+- `FRONTEND_URL`
+- `JWT_SECRET`
 
-GET /actuator/health is public and returns only basic status. All other routes are denied until authentication is implemented. CSRF stays enabled; CORS accepts only the configured frontend origin. No default login credentials are generated.
+Nunca se deben subir archivos `.env` ni secretos al repositorio. `JWT_SECRET` debe ser único y tener al menos 32 bytes.
 
-JWT signing and refresh-cookie rotation are implemented. Set a unique `JWT_SECRET` of at least 32 bytes outside local development; never use the example value in production.
+El health-check es público y solo expone el estado básico del servicio. Las operaciones de usuario requieren autenticación. Las transferencias validan autorización, saldo, idempotencia, bloqueo de billeteras y consistencia del ledger.
 
-## Backend image
+## Backend Docker
 
 ```bash
 docker build -t payflow-backend:local backend
 ```
 
-The multi-stage image compiles and runs with Java 21 as a non-root user. Image creation skips tests; run verify before building. Compose starts PostgreSQL for local development; public hosting, TLS and a production domain still need to be selected.
+La imagen utiliza un build multi-stage, Java 21 y un usuario no root. Docker Compose proporciona PostgreSQL para el desarrollo local.
 
-## Repository
+## Estructura
 
 ```text
-backend/         Spring Boot modular monolith and PostgreSQL integration tests
-frontend/        React + TypeScript, Tailwind and frontend tests
-docs/            Decisions, architecture and database notes
-.github/         Build/test workflow
+backend/         Spring Boot modular monolith y pruebas de integración
+frontend/        React + TypeScript, Tailwind y pruebas frontend
+docs/            Decisiones, arquitectura y notas de base de datos
+.github/         Workflows de build y validación
 docker-compose.yml
 ```
+
+## Decisiones y arquitectura
+
+- [Decisiones técnicas del MVP](docs/adr/ADR-000-mvp-technical-decisions.md)
+- [Bloqueo de billeteras y fondos iniciales](docs/adr/ADR-001-wallet-locking-and-opening-funds.md)
+- [Fundamentos de arquitectura](docs/architecture/foundation.md)
