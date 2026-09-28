@@ -2,13 +2,16 @@
 
 ## Delivered boundary
 
+PayFlow is now deployed: the React frontend runs on Vercel, the Dockerized Spring Boot backend runs on Render, and PostgreSQL is managed by Render. The production environment remains a simulated financial sandbox; no real money is processed.
+
 - Java 21 target, Spring Boot 3.5.16, Maven Wrapper 3.9.16.
 - Flyway V1–V3 creates users, roles, wallets, ledger accounts and entries, sessions, refresh-token hashes, idempotency requests and audit logs in PostgreSQL 16.
 - Framework-independent Money and account/role status enums.
 - Spring Security uses bearer JWTs for authenticated API routes; no generated development user, HTTP Basic, or form login is enabled.
+- Account self-service includes password change, active-session listing and session revocation, with security audit events.
 - CSRF remains enabled. CORS accepts only configured explicit origins with credentials.
 - API error structure and server-generated correlation IDs are shared infrastructure.
-- React welcome, authentication, dashboard, wallet, transfer, history and receipt screens, router, QueryClient, Tailwind semantic colors, linting, formatting, tests, and production build.
+- React welcome, authentication, dashboard, wallet, transfer, history, receipt, CSV export and active-session screens, router, QueryClient, Tailwind semantic colors, linting, formatting, tests, and production build.
 - GitHub Actions checks backend integration tests and frontend validation.
 - Dockerfile builds the backend with Java 21. Compose currently provides PostgreSQL only.
 
@@ -54,4 +57,4 @@ Verified 2026-09-09:
 
 ## Next increment
 
-Complete account self-service and production delivery: profile and password management, a provider-backed password-reset email flow, a minimal administrator surface, application containers and deployment documentation. Email delivery and a public production environment require provider credentials, domain and hosting decisions.
+Complete email verification and password recovery through a provider-backed email flow, then consider a minimal administrator surface, MFA, notifications and other production hardening. Real-money processing is explicitly outside the project scope.
