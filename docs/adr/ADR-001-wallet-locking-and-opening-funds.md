@@ -24,6 +24,4 @@ For internal transfers, debit and credit must balance within USD. No API should 
 
 ## Verification gates
 
-Before implementing transfers, add PostgreSQL integration tests for simultaneous overspending, opposing transfers, lost HTTP responses/retries, duplicate idempotency requests, changed payload conflicts, and full rollback after an injected failure. Registration must have a grant/reconciliation test.
-
-The foundation currently tests money arithmetic, SQL constraints, HTTP security, and database rollback. This ADR records the transfer/grant design; the locking query and financial ledger are not implemented yet.
+The deployed MVP includes the transfer locking, idempotency and balanced-ledger flow described here. Continue expanding PostgreSQL integration coverage for simultaneous overspending, opposing transfers, lost HTTP responses/retries, duplicate idempotency requests, changed payload conflicts and full rollback after an injected failure. Registration should retain a grant/reconciliation test.
