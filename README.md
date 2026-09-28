@@ -1,78 +1,79 @@
 # PayFlow
 
-PayFlow es un sandbox financiero educativo desplegado en producción. Utiliza Java 21, Spring Boot, React, TypeScript y PostgreSQL. Simula saldos y transferencias internas; no procesa dinero real ni se conecta a bancos.
+PayFlow is an educational financial sandbox deployed for public demonstration. It uses Java 21, Spring Boot, React, TypeScript and PostgreSQL. It simulates balances and internal transfers; it does not process real money or connect to banks.
 
-## Alcance actual
+## Current scope
 
-El MVP está operativo de extremo a extremo:
+The MVP is operational end to end:
 
-- Registro e inicio de sesión.
-- JWT de acceso de corta duración.
-- Refresh tokens rotativos almacenados como hashes.
-- Cookie HttpOnly y Secure en producción.
-- Una billetera USD por cuenta con saldo inicial simulado.
-- Transferencias internas atómicas e idempotentes entre usuarios.
-- Ledger de doble partida e historial de operaciones.
-- Exportación del historial a CSV.
-- Cambio de contraseña.
-- Listado y revocación de sesiones activas.
-- Auditoría de eventos de seguridad.
-- CSRF, CORS explícito, autorización por roles y rate limiting para autenticación.
-- Interfaz responsive en React.
+- Registration and login.
+- Short-lived access JWTs.
+- Rotating refresh tokens stored as hashes.
+- HttpOnly and Secure cookies in production.
+- One USD wallet per account with simulated opening funds.
+- Atomic, idempotent internal transfers between users.
+- Double-entry ledger and transaction history.
+- CSV transaction export.
+- Password change.
+- Active-session listing and session revocation.
+- Security audit events.
+- CSRF, explicit CORS, role-based authorization and authentication rate limiting.
+- Responsive React interface.
 
-El flujo de transferencia entre dos cuentas sandbox fue probado exitosamente. Las cuentas representan usuarios de prueba y los fondos son completamente simulados.
+The transfer flow between two sandbox accounts was tested successfully. Accounts and balances are fictitious and exist only inside the PayFlow sandbox.
 
-## Producción
+## Production
 
 - Frontend: [payflow-alpha-brown.vercel.app](https://payflow-alpha-brown.vercel.app)
 - Backend: [payflow-backend-p76b.onrender.com](https://payflow-backend-p76b.onrender.com)
-- Health-check: [actuator/health](https://payflow-backend-p76b.onrender.com/actuator/health)
-- Base de datos: PostgreSQL administrado por Render.
-- Backend: imagen Docker desplegada en Render.
-- Frontend: build de React desplegado en Vercel.
+- Health check: [actuator/health](https://payflow-backend-p76b.onrender.com/actuator/health)
+- Database: PostgreSQL managed by Render.
+- Backend: Docker image deployed on Render.
+- Frontend: React production build deployed on Vercel.
 
-El plan gratuito de Render puede suspender el backend por inactividad. La primera solicitud después de ese periodo puede tardar mientras el servicio despierta.
+The Render free plan may suspend the backend after inactivity. The first request after suspension can take time while the service wakes up.
 
-## Limitaciones deliberadas
+## Explicit limitations
 
-PayFlow no maneja dinero real, pagos, retiros, depósitos ni transferencias bancarias. La integración con dinero real queda fuera del alcance del proyecto porque requeriría una entidad financiera o proveedor de pagos autorizado, credenciales, cumplimiento regulatorio y una API privada o comercial.
+PayFlow does not handle real money, payments, withdrawals, deposits or bank transfers. Real-money integration is outside the project scope because it would require an authorized financial or payment provider, private or commercial APIs, credentials, regulatory compliance, KYC/AML controls and legal agreements.
 
-También están pendientes:
+Deferred capabilities include:
 
-- Verificación de correo electrónico.
-- Recuperación de contraseña mediante correo.
-- Configuración SMTP o proveedor de email.
-- Autenticación multifactor.
-- Panel administrativo completo.
-- Notificaciones y controles antifraude avanzados.
+- Email verification.
+- Password recovery by email.
+- SMTP or transactional email provider.
+- Multifactor authentication.
+- Complete administrator surface.
+- Notifications and advanced antifraud controls.
+- Beneficiaries, risk scoring and multi-currency support.
 
-## Tecnologías
+## Technologies
 
-- Backend: Java 21, Spring Boot 3.5, Spring Security, Spring Data JPA, Hibernate y Maven.
-- Base de datos: PostgreSQL 16 y Flyway.
-- Frontend: React, TypeScript, Vite, React Router, TanStack Query, React Hook Form, Zod, Tailwind CSS y Vitest.
-- Infraestructura: Docker, Docker Compose, Render y Vercel.
-- Arquitectura: monolito modular con módulos de auth, user, wallet, transfer, transaction, ledger, shared y configuration.
+- Backend: Java 21, Spring Boot 3.5, Spring Security, Spring Data JPA, Hibernate and Maven.
+- Database: PostgreSQL 16 and Flyway.
+- Frontend: React, TypeScript, Vite, React Router, TanStack Query, React Hook Form, Zod, Tailwind CSS and Vitest.
+- Infrastructure: Docker, Docker Compose, Render and Vercel.
+- Architecture: modular monolith with auth, user, wallet, transfer, transaction, ledger, shared and configuration modules.
 
-## Ejecutar localmente
+## Run locally
 
-### Requisitos
+### Requirements
 
 - JDK 21.
-- Node.js y npm.
-- Docker con Compose o Podman.
-- Maven se descarga automáticamente mediante el wrapper.
+- Node.js and npm.
+- Docker with Compose or Podman.
+- Maven is downloaded automatically through the wrapper.
 
-### Backend y base de datos
+### Backend and database
 
-Desde la raíz:
+From the repository root:
 
 ```bash
 cp .env.example .env
 docker compose up -d postgres
 ```
 
-En otra terminal:
+In another terminal:
 
 ```bash
 cd backend
@@ -88,9 +89,9 @@ npm ci
 npm run dev
 ```
 
-Abrir http://localhost:5173. El backend local queda disponible en http://localhost:8080 y su health-check en http://localhost:8080/actuator/health.
+Open http://localhost:5173. The local backend is available at http://localhost:8080 and its health check at http://localhost:8080/actuator/health.
 
-## Verificación
+## Verification
 
 Backend:
 
@@ -111,9 +112,9 @@ npm test
 npm run build
 ```
 
-## Configuración y seguridad
+## Configuration and security
 
-En producción se configuran mediante variables de entorno:
+Production variables are supplied through the hosting platform:
 
 - `DB_HOST`
 - `DB_PORT`
@@ -123,30 +124,31 @@ En producción se configuran mediante variables de entorno:
 - `FRONTEND_URL`
 - `JWT_SECRET`
 
-Nunca se deben subir archivos `.env` ni secretos al repositorio. `JWT_SECRET` debe ser único y tener al menos 32 bytes.
+Never commit `.env` files or secrets. `JWT_SECRET` must be unique and contain at least 32 bytes.
 
-El health-check es público y solo expone el estado básico del servicio. Las operaciones de usuario requieren autenticación. Las transferencias validan autorización, saldo, idempotencia, bloqueo de billeteras y consistencia del ledger.
+The health check is public and exposes only basic service status. All user operations require authentication. Transfers validate authorization, balance, idempotency, wallet locking and ledger consistency.
 
-## Backend Docker
+## Backend Docker image
 
 ```bash
 docker build -t payflow-backend:local backend
 ```
 
-La imagen utiliza un build multi-stage, Java 21 y un usuario no root. Docker Compose proporciona PostgreSQL para el desarrollo local.
+The image uses a multi-stage build, Java 21 and a non-root user. Docker Compose provides PostgreSQL for local development.
 
-## Estructura
+## Repository structure
 
 ```text
-backend/         Spring Boot modular monolith y pruebas de integración
-frontend/        React + TypeScript, Tailwind y pruebas frontend
-docs/            Decisiones, arquitectura y notas de base de datos
-.github/         Workflows de build y validación
+backend/         Spring Boot modular monolith and integration tests
+frontend/        React + TypeScript, Tailwind and frontend tests
+docs/            Decisions, architecture and database notes
+.github/         Build and validation workflows
 docker-compose.yml
 ```
 
-## Decisiones y arquitectura
+## Decisions and architecture
 
-- [Decisiones técnicas del MVP](docs/adr/ADR-000-mvp-technical-decisions.md)
-- [Bloqueo de billeteras y fondos iniciales](docs/adr/ADR-001-wallet-locking-and-opening-funds.md)
-- [Fundamentos de arquitectura](docs/architecture/foundation.md)
+- [MVP technical decisions](docs/adr/ADR-000-mvp-technical-decisions.md)
+- [Wallet locking and opening funds](docs/adr/ADR-001-wallet-locking-and-opening-funds.md)
+- [Architecture foundation](docs/architecture/foundation.md)
+- [Master software engineering document](PayFlow%20%E2%80%94%20Master%20Software%20Engineering%20Document.md)
