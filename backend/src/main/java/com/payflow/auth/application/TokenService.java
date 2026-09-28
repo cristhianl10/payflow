@@ -6,6 +6,7 @@ import java.security.SecureRandom;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.*;
+import com.payflow.audit.AuditLog;
 import com.payflow.shared.domain.BusinessException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -22,18 +23,20 @@ import org.springframework.transaction.annotation.Transactional;
 public class TokenService {
     private final JdbcTemplate jdbc;
     private final JwtEncoder encoder;
+    private final AuditLog audit;
     private final long accessSeconds;
     private final long refreshSeconds;
     private final SecureRandom random = new SecureRandom();
 
-    public TokenService(JdbcTemplate jdbc, JwtEncoder encoder,
-            @Value("${payflow.auth.access-seconds:900}") long accessSeconds,
-            @Value("${payflow.auth.refresh-seconds:604800}") long refreshSeconds) {
+    public TokenService(JdbcTemplate jdbc, JwtEncoder encoder, AuditLog audit,
+            @Value("$" + "{payflow.auth.access-seconds:900}") long accessSeconds,
+            @Value("$" + "{payflow.auth.refresh-seconds:604800}") long refreshSeconds) {
         if (accessSeconds < 30 || accessSeconds > 3600 || refreshSeconds < accessSeconds) {
             throw new IllegalArgumentException("Invalid token lifetimes");
         }
         this.jdbc = jdbc;
         this.encoder = encoder;
+        this.audit = audit;
         this.accessSeconds = accessSeconds;
         this.refreshSeconds = refreshSeconds;
     }
@@ -46,6 +49,32 @@ public class TokenService {
         jdbc.update("INSERT INTO auth_sessions(id, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)",
                 session, user, Timestamp.from(now), Timestamp.from(expiry));
         return issue(user, session, expiry);
+    }
+
+    @Transactional(readOnly = true)
+    public List<SessionView> activeSessions(UUID user, UUID currentSession) {
+        return jdbc.query("""
+                SELECT id, created_at, expires_at FROM auth_sessions
+                WHERE user_id = ? AND revoked_at IS NULL AND expires_at > CURRENT_TIMESTAMP
+                ORDER BY created_at DESC
+                """, (rs, row) -> new SessionView(rs.getObject("id", UUID.class),
+                        rs.getTimestamp("created_at").toInstant(), rs.getTimestamp("expires_at").toInstant(),
+                        currentSession.equals(rs.getObject("id", UUID.class))), user);
+    }
+
+    @Transactional
+    public void revokeOtherSession(UUID user, UUID currentSession, UUID targetSession) {
+        if (currentSession.equals(targetSession)) {
+            throw new BusinessException(400, "CURRENT_SESSION", "Use sign out to end your current session.");
+        }
+        int updated = jdbc.update("""
+                UPDATE auth_sessions SET revoked_at = CURRENT_TIMESTAMP
+                WHERE id = ? AND user_id = ? AND revoked_at IS NULL
+                """, targetSession, user);
+        if (updated != 1) {
+            throw new BusinessException(404, "SESSION_NOT_FOUND", "This session is no longer active.");
+        }
+        audit.record("SESSION_REVOKED", user, targetSession);
     }
 
     @Transactional(noRollbackFor = RejectedSession.class)
@@ -61,7 +90,6 @@ public class TokenService {
                     rs.getTimestamp("consumed_at") != null, rs.getString("status")), hash);
         if (sessions.isEmpty()) throw rejected();
         Session session = sessions.getFirst();
-        // Re-read after acquiring the session lock: a concurrent rotation may have consumed this token.
         boolean used = Boolean.TRUE.equals(jdbc.queryForObject(
                 "SELECT consumed_at IS NOT NULL FROM refresh_tokens WHERE token_hash = ?", Boolean.class, hash));
         if (used || session.revoked || !session.expiresAt.isAfter(Instant.now()) || !session.status.equals("ACTIVE")) {
@@ -129,5 +157,6 @@ public class TokenService {
         public RejectedSession() { super(401, "SESSION_EXPIRED", "Your session has expired. Please sign in again."); }
     }
     private record Session(UUID id, UUID user, Instant expiresAt, boolean revoked, boolean consumed, String status) {}
+    public record SessionView(UUID id, Instant createdAt, Instant expiresAt, boolean current) {}
     public record Tokens(String accessToken, String refreshToken, Instant expiresAt, Instant sessionExpiresAt, UUID userId) {}
 }
