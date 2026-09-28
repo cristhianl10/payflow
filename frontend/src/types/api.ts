@@ -5,6 +5,12 @@ export type User = {
   email: string;
 };
 export type Session = { accessToken: string; expiresAt: string; user: User };
+export type ActiveSession = {
+  id: string;
+  createdAt: string;
+  expiresAt: string;
+  current: boolean;
+};
 export type Wallet = {
   publicId: string;
   currency: string;
