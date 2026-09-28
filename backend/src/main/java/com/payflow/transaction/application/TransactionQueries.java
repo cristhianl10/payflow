@@ -27,14 +27,11 @@ public class TransactionQueries {
     public TransactionQueries(JdbcTemplate jdbc) { this.jdbc = jdbc; }
 
     public Page history(UUID user, int page, int size, String direction) {
-        if (page < 0 || page > 100000 || size < 1 || size > 50 || !List.of("all", "sent", "received").contains(direction)) {
+        validateDirection(direction);
+        if (page < 0 || page > 100000 || size < 1 || size > 50) {
             throw new BusinessException(400, "INVALID_FILTER", "Choose a valid page and activity filter.");
         }
-        String condition = switch (direction) {
-            case "sent" -> "sw.user_id = ?";
-            case "received" -> "rw.user_id = ?";
-            default -> "(sw.user_id = ? OR rw.user_id = ?)";
-        };
+        String condition = condition(direction);
         Object[] owners = direction.equals("all") ? new Object[]{user, user} : new Object[]{user};
         Object[] arguments = direction.equals("all") ? new Object[]{user, user, size, page * size}
                 : new Object[]{user, size, page * size};
@@ -42,6 +39,43 @@ public class TransactionQueries {
                 (rs, row) -> map(rs, user), arguments);
         Long count = jdbc.queryForObject("SELECT count(*) FROM (" + SELECT + " WHERE " + condition + ") matches", Long.class, owners);
         return new Page(items, page, size, count == null ? 0 : count);
+    }
+
+    public String exportCsv(UUID user, String direction) {
+        validateDirection(direction);
+        String condition = condition(direction);
+        Object[] owners = direction.equals("all") ? new Object[]{user, user} : new Object[]{user};
+        var items = jdbc.query(SELECT + " WHERE " + condition + " ORDER BY j.created_at DESC, j.id DESC",
+                (rs, row) -> map(rs, user), owners);
+        var csv = new StringBuilder("transaction_id,kind,status,direction,amount,currency,counterparty,sender,receiver,description,created_at\n");
+        for (var item : items) {
+            csv.append(csv(item.publicId())).append(',')
+                    .append(csv(item.kind())).append(',')
+                    .append(csv(item.status())).append(',')
+                    .append(csv(item.direction())).append(',')
+                    .append(csv(item.amount())).append(',')
+                    .append(csv(item.currency())).append(',')
+                    .append(csv(item.counterparty())).append(',')
+                    .append(csv(item.sender())).append(',')
+                    .append(csv(item.receiver())).append(',')
+                    .append(csv(item.description())).append(',')
+                    .append(csv(item.createdAt().toString())).append('\n');
+        }
+        return csv.toString();
+    }
+
+    private void validateDirection(String direction) {
+        if (!List.of("all", "sent", "received").contains(direction)) {
+            throw new BusinessException(400, "INVALID_FILTER", "Choose a valid activity filter.");
+        }
+    }
+
+    private String condition(String direction) {
+        return switch (direction) {
+            case "sent" -> "sw.user_id = ?";
+            case "received" -> "rw.user_id = ?";
+            default -> "(sw.user_id = ? OR rw.user_id = ?)";
+        };
     }
 
     public TransactionView detail(UUID user, String publicId) {
@@ -59,6 +93,11 @@ public class TransactionQueries {
         return new TransactionView(rs.getString("public_id"), kind, "COMPLETED", sent ? "sent" : "received",
                 rs.getBigDecimal("amount").setScale(2).toPlainString(), rs.getString("currency"),
                 sent ? receiver : sender, sender, receiver, rs.getString("description"), rs.getTimestamp("created_at").toInstant());
+    }
+
+    private String csv(String value) {
+        if (value == null) return "";
+        return """ + value.replace(""", """") + """;
     }
 
     public record TransactionView(String publicId, String kind, String status, String direction, String amount,
