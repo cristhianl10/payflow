@@ -111,7 +111,6 @@ async function request<T>(
 export function refreshSession(): Promise<Session> {
   if (refreshRequest) return refreshRequest;
   const refresh = () => request<Session>('/auth/refresh', { method: 'POST' });
-  // Serialize cookie rotation between same-origin tabs as well as within this tab.
   refreshRequest = (
     navigator.locks
       ? navigator.locks.request('payflow-refresh', refresh)
@@ -164,6 +163,39 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
     if (error instanceof ApiError && error.status === 401) {
       const renewed = await refreshSession();
       return request<T>(path, init, renewed.accessToken);
+    }
+    throw error;
+  }
+}
+
+async function downloadResponse(path: string, access: string): Promise<Blob> {
+  const result = await fetch(`/api/v1${path}`, {
+    credentials: 'include',
+    headers: { Authorization: `Bearer ${access}` },
+    signal: AbortSignal.timeout(25_000),
+  });
+  if (!result.ok) {
+    const body = await result.json().catch(() => ({}));
+    throw new ApiError(
+      result.status,
+      body.code ?? 'REQUEST_FAILED',
+      body.message ?? 'We could not complete this request. Please try again.',
+      body.traceId,
+    );
+  }
+  return result.blob();
+}
+
+export async function downloadCsv(path: string): Promise<Blob> {
+  let current = session;
+  if (!current || Date.parse(current.expiresAt) - Date.now() < 30_000)
+    current = await refreshSession();
+  try {
+    return await downloadResponse(path, current.accessToken);
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 401) {
+      const renewed = await refreshSession();
+      return downloadResponse(path, renewed.accessToken);
     }
     throw error;
   }
