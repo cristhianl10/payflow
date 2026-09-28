@@ -1,0 +1,43 @@
+databases:
+  - name: payflow-postgres
+    databaseName: payflow
+    user: payflow
+    plan: free
+    region: oregon
+    postgresMajorVersion: 16
+
+services:
+  - type: web
+    name: payflow-backend
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /actuator/health
+    autoDeployTrigger: commit
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: DB_URL
+        fromDatabase:
+          name: payflow-postgres
+          property: connectionString
+      - key: DB_USERNAME
+        fromDatabase:
+          name: payflow-postgres
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: payflow-postgres
+          property: password
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_ACCESS_EXPIRATION_SECONDS
+        value: "900"
+      - key: JWT_REFRESH_EXPIRATION_SECONDS
+        value: "604800"
+      - key: PAYFLOW_DEFAULT_INITIAL_BALANCE
+        value: "10000.00"
+      - key: FRONTEND_URL
+        value: https://payflow.vercel.app
