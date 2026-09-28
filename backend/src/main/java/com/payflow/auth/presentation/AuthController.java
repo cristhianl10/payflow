@@ -2,8 +2,10 @@ package com.payflow.auth.presentation;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import com.payflow.auth.application.*;
+import com.payflow.shared.domain.BusinessException;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,7 +22,7 @@ public class AuthController {
     private final TokenService tokens;
     private final boolean secure;
 
-    public AuthController(AuthService auth, TokenService tokens, @Value("${payflow.auth.secure-cookie:false}") boolean secure) {
+    public AuthController(AuthService auth, TokenService tokens, @Value("$" + "{payflow.auth.secure-cookie:false}") boolean secure) {
         this.auth = auth; this.tokens = tokens; this.secure = secure;
     }
 
@@ -60,6 +62,27 @@ public class AuthController {
     ResponseEntity<Void> changePassword(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody ChangePasswordRequest request) {
         auth.changePassword(UUID.fromString(jwt.getSubject()), request.currentPassword, request.newPassword);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/users/me/sessions")
+    List<TokenService.SessionView> sessions(@AuthenticationPrincipal Jwt jwt) {
+        UUID user = UUID.fromString(jwt.getSubject());
+        return tokens.activeSessions(user, currentSession(jwt));
+    }
+
+    @DeleteMapping("/users/me/sessions/{sessionId}")
+    ResponseEntity<Void> revokeSession(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID sessionId) {
+        UUID user = UUID.fromString(jwt.getSubject());
+        tokens.revokeOtherSession(user, currentSession(jwt), sessionId);
+        return ResponseEntity.noContent().build();
+    }
+
+    private UUID currentSession(Jwt jwt) {
+        try {
+            return UUID.fromString(jwt.getClaimAsString("sid"));
+        } catch (IllegalArgumentException | NullPointerException exception) {
+            throw new BusinessException(401, "UNAUTHENTICATED", "Please sign in again.");
+        }
     }
 
     private ResponseEntity<AuthView> response(TokenService.Tokens issued, int status) {
