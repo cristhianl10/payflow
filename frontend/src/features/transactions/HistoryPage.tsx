@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import { Download } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useSession } from '../../hooks/useSession';
-import { api } from '../../services/api';
+import { api, downloadCsv } from '../../services/api';
 import { Loading, Notice } from '../../components/ui';
 import type { TransactionPage } from '../../types/api';
 import { ActivityList } from './ActivityList';
@@ -10,6 +11,7 @@ export function HistoryPage() {
   const session = useSession();
   const [direction, setDirection] = useState('all');
   const [page, setPage] = useState(0);
+  const [exporting, setExporting] = useState(false);
   const history = useQuery({
     queryKey: ['transactions', session?.user.publicId, direction, page],
     queryFn: () =>
@@ -17,6 +19,22 @@ export function HistoryPage() {
         `/transactions?direction=${direction}&page=${page}&size=10`,
       ),
   });
+
+  async function exportHistory() {
+    setExporting(true);
+    try {
+      const blob = await downloadCsv(`/transactions/export?direction=${direction}`);
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = 'payflow-transactions.csv';
+      anchor.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setExporting(false);
+    }
+  }
+
   return (
     <>
       <div className="page-heading">
@@ -26,6 +44,15 @@ export function HistoryPage() {
             Your transfers and opening funds, all in one place.
           </p>
         </div>
+        <button
+          className="button button-secondary button-small"
+          type="button"
+          onClick={() => void exportHistory()}
+          disabled={exporting || history.isPending}
+        >
+          <Download size={16} aria-hidden="true" />
+          {exporting ? 'Preparing…' : 'Export CSV'}
+        </button>
       </div>
       <div className="activity-filters" aria-label="Activity direction">
         {[
