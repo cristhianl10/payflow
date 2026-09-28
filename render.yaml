@@ -19,10 +19,18 @@ services:
     envVars:
       - key: SPRING_PROFILES_ACTIVE
         value: prod
-      - key: DB_URL
+      - key: DB_HOST
         fromDatabase:
           name: payflow-postgres
-          property: connectionString
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: payflow-postgres
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: payflow-postgres
+          property: database
       - key: DB_USERNAME
         fromDatabase:
           name: payflow-postgres
@@ -40,4 +48,4 @@ services:
       - key: PAYFLOW_DEFAULT_INITIAL_BALANCE
         value: "10000.00"
       - key: FRONTEND_URL
-        value: https://payflow.vercel.app
+        value: https://payflow-alpha-brown.vercel.app
