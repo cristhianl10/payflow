@@ -1,11 +1,14 @@
 import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ShieldCheck } from 'lucide-react';
 import { useSession } from '../hooks/useSession';
 import { Avatar, Notice } from '../components/ui';
 import { api, updateSessionUser } from '../services/api';
+import type { ActiveSession } from '../types/api';
 
 export function AccountPage() {
   const session = useSession();
+  const queries = useQueryClient();
   const [firstName, setFirstName] = useState(session?.user.firstName ?? '');
   const [lastName, setLastName] = useState(session?.user.lastName ?? '');
   const [currentPassword, setCurrentPassword] = useState('');
@@ -14,6 +17,11 @@ export function AccountPage() {
   const [error, setError] = useState<unknown>();
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
+  const [revoking, setRevoking] = useState<string>();
+  const sessions = useQuery({
+    queryKey: ['sessions', session?.user.publicId],
+    queryFn: () => api<ActiveSession[]>('/users/me/sessions'),
+  });
   if (!session) return null;
   const { user } = session;
 
@@ -52,12 +60,29 @@ export function AccountPage() {
       setCurrentPassword('');
       setNewPassword('');
       setNotice('Password changed. Sign in again to continue securely.');
+      void sessions.refetch();
     } catch (failure) {
       setError(failure);
     } finally {
       setSavingPassword(false);
     }
   }
+
+  async function revokeSession(id: string) {
+    setError(undefined);
+    setNotice(undefined);
+    setRevoking(id);
+    try {
+      await api(`/users/me/sessions/${id}`, { method: 'DELETE' });
+      await queries.invalidateQueries({ queryKey: ['sessions'] });
+      setNotice('The selected session was revoked.');
+    } catch (failure) {
+      setError(failure);
+    } finally {
+      setRevoking(undefined);
+    }
+  }
+
   return (
     <>
       <div className="page-heading">
@@ -127,7 +152,7 @@ export function AccountPage() {
           </form>
           <form className="account-form" onSubmit={savePassword}>
             <h2>Change password</h2>
-            <p>For security, changing it signs out your other sessions.</p>
+            <p>Changing it signs out all other sessions.</p>
             <div className="field">
               <label htmlFor="current-password">Current password</label>
               <input
@@ -161,12 +186,41 @@ export function AccountPage() {
             </button>
           </form>
         </div>
+        <section className="account-form sessions-section">
+          <h2>Active sessions</h2>
+          <p>Revoke access from a device you no longer use.</p>
+          <Notice error={sessions.error} />
+          {sessions.isPending ? (
+            <p className="field-hint">Loading active sessions…</p>
+          ) : (
+            sessions.data?.map((item) => (
+              <div className="session-row" key={item.id}>
+                <div>
+                  <strong>{item.current ? 'This session' : 'Other session'}</strong>
+                  <span className="field-hint">
+                    Started {new Date(item.createdAt).toLocaleString('en-US')} · Expires{' '}
+                    {new Date(item.expiresAt).toLocaleString('en-US')}
+                  </span>
+                </div>
+                {!item.current && (
+                  <button
+                    className="button button-secondary button-small"
+                    type="button"
+                    disabled={revoking === item.id}
+                    onClick={() => void revokeSession(item.id)}
+                  >
+                    {revoking === item.id ? 'Revoking…' : 'Revoke'}
+                  </button>
+                )}
+              </div>
+            ))
+          )}
+        </section>
         <div className="notice notice-info">
           <ShieldCheck size={21} aria-hidden="true" />
           <span>
-            Use Sign out in the navigation to end this session. Password
-            recovery will be available when a verified email delivery provider
-            is connected.
+            Access tokens are short-lived, refresh tokens are rotated, and
+            revoked sessions stop authenticating immediately.
           </span>
         </div>
       </section>
