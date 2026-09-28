@@ -97,7 +97,8 @@ public class TransactionQueries {
 
     private String csv(String value) {
         if (value == null) return "";
-        return """ + value.replace(""", """") + """;
+        String quote = String.valueOf('"');
+        return quote + value.replace(quote, quote + quote) + quote;
     }
 
     public record TransactionView(String publicId, String kind, String status, String direction, String amount,
