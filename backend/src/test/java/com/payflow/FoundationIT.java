@@ -55,7 +55,7 @@ class FoundationIT {
     @Test
     void startsAgainstPostgresAndExposesOnlyBasicHealth() {
         assertTrue(flyway.validateWithResult().validationSuccessful);
-        assertEquals(5, flyway.info().applied().length);
+        assertEquals(6, flyway.info().applied().length);
         ResponseEntity<String> response = http.getForEntity("/actuator/health", String.class);
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals("{\"status\":\"UP\"}", response.getBody());
