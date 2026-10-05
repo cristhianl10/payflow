@@ -5,3 +5,7 @@ spring:
     password: ${DB_PASSWORD:payflow_dev_only}
 payflow:
   allowed-origins: ${FRONTEND_URL:http://localhost:5173}
+  email:
+    frontend-url: ${FRONTEND_URL:http://localhost:5173}
+    delivery-mode: ${EMAIL_DELIVERY_MODE:log}
+    from: ${EMAIL_FROM:no-reply@payflow.local}
