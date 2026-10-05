@@ -16,6 +16,7 @@ import { HistoryPage } from '../features/transactions/HistoryPage';
 import { TransactionDetailPage } from '../features/transactions/TransactionDetailPage';
 import { WalletPage } from '../features/wallet/WalletPage';
 import { AccountPage } from '../pages/AccountPage';
+import { BeneficiariesPage } from '../features/beneficiaries/BeneficiariesPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -53,6 +54,7 @@ export function App() {
               element={<TransactionDetailPage />}
             />
             <Route path="wallet" element={<WalletPage />} />
+            <Route path="beneficiaries" element={<BeneficiariesPage />} />
             <Route path="account" element={<AccountPage />} />
           </Route>
           <Route
