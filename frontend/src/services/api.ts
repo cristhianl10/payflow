@@ -60,8 +60,10 @@ async function response<T>(path: string, init: RequestInit): Promise<T> {
       body.traceId,
     );
   }
-  if (result.status === 204) return undefined as T;
-  return result.json() as Promise<T>;
+  if (result.status === 204 || result.status === 205) return undefined as T;
+  const payload = await result.text();
+  if (!payload) return undefined as T;
+  return JSON.parse(payload) as T;
 }
 
 async function ensureCsrf(force = false) {
@@ -157,6 +159,20 @@ export async function verifyEmail(token: string) {
 
 export async function resendEmailVerification() {
   return api<void>('/users/me/email-verification', { method: 'POST' });
+}
+
+export async function forgotPassword(email: string) {
+  await request('/auth/forgot-password', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
+}
+
+export async function resetPassword(token: string, newPassword: string) {
+  await request('/auth/reset-password', {
+    method: 'POST',
+    body: JSON.stringify({ token, newPassword }),
+  });
 }
 
 export async function logout() {
