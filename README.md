@@ -16,6 +16,7 @@ The MVP is operational end to end:
 - CSV transaction export.
 - Email verification with expiring single-use tokens.
 - Password recovery by email with expiring single-use reset tokens.
+- Saved beneficiaries with ownership-safe CRUD and transfer shortcuts.
 - Password change.
 - Active-session listing and session revocation.
 - Security audit events.
@@ -44,7 +45,7 @@ Deferred capabilities include:
 - Multifactor authentication.
 - Complete administrator surface.
 - Notifications and advanced antifraud controls.
-- Beneficiaries, risk scoring and multi-currency support.
+- Risk scoring and multi-currency support.
 
 ## Technologies
 
