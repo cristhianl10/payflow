@@ -26,7 +26,10 @@ export function BeneficiariesPage() {
     try {
       await api<Beneficiary>('/beneficiaries', {
         method: 'POST',
-        body: JSON.stringify({ email: email.trim(), alias: alias.trim() || null }),
+        body: JSON.stringify({
+          email: email.trim(),
+          alias: alias.trim() || null,
+        }),
       });
       setEmail('');
       setAlias('');
@@ -60,7 +63,9 @@ export function BeneficiariesPage() {
     setError(undefined);
     setBusy(item.publicId);
     try {
-      await api<void>(`/beneficiaries/${item.publicId}`, { method: 'DELETE' });
+      await api<void>(`/beneficiaries/${item.publicId}`, {
+        method: 'DELETE',
+      });
       await queries.invalidateQueries({ queryKey: ['beneficiaries'] });
     } catch (failure) {
       setError(failure);
