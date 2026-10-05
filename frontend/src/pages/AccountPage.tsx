@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ShieldCheck } from 'lucide-react';
+import { MailCheck, ShieldCheck } from 'lucide-react';
 import { useSession } from '../hooks/useSession';
 import { Avatar, Notice } from '../components/ui';
-import { api, updateSessionUser } from '../services/api';
+import { api, resendEmailVerification, updateSessionUser } from '../services/api';
 import type { ActiveSession } from '../types/api';
 
 export function AccountPage() {
@@ -18,6 +18,7 @@ export function AccountPage() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
   const [revoking, setRevoking] = useState<string>();
+  const [resendingVerification, setResendingVerification] = useState(false);
   const sessions = useQuery({
     queryKey: ['sessions', session?.user.publicId],
     queryFn: () => api<ActiveSession[]>('/users/me/sessions'),
@@ -68,6 +69,21 @@ export function AccountPage() {
     }
   }
 
+
+  async function resendVerification() {
+    setError(undefined);
+    setNotice(undefined);
+    setResendingVerification(true);
+    try {
+      await resendEmailVerification();
+      setNotice('A new verification link was sent. Check your email.');
+    } catch (failure) {
+      setError(failure);
+    } finally {
+      setResendingVerification(false);
+    }
+  }
+
   async function revokeSession(id: string) {
     setError(undefined);
     setNotice(undefined);
@@ -107,6 +123,10 @@ export function AccountPage() {
             <dd>{user.email}</dd>
           </div>
           <div>
+            <dt>Email verification</dt>
+            <dd>{user.emailVerified ? 'Verified' : 'Pending verification'}</dd>
+          </div>
+          <div>
             <dt>Environment</dt>
             <dd>Sandbox · Simulated funds</dd>
           </div>
@@ -117,6 +137,22 @@ export function AccountPage() {
         </dl>
         <Notice error={error} />
         {notice && <div className="notice notice-success">{notice}</div>}
+        {!user.emailVerified && (
+          <div className="notice notice-info">
+            <MailCheck size={21} aria-hidden="true" />
+            <span>
+              Verify your email address to confirm ownership of this account.
+            </span>
+            <button
+              className="button button-secondary button-small"
+              type="button"
+              disabled={resendingVerification}
+              onClick={() => void resendVerification()}
+            >
+              {resendingVerification ? 'Sending…' : 'Resend verification'}
+            </button>
+          </div>
+        )}
         <div className="account-actions">
           <form className="account-form" onSubmit={saveProfile}>
             <h2>Personal details</h2>
