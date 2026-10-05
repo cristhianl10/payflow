@@ -3,6 +3,7 @@ export type User = {
   firstName: string;
   lastName: string;
   email: string;
+  emailVerified: boolean;
 };
 export type Session = { accessToken: string; expiresAt: string; user: User };
 export type ActiveSession = {
