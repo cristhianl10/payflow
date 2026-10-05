@@ -12,6 +12,7 @@ import com.payflow.user.infrastructure.UserEntity;
 import com.payflow.user.infrastructure.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mail.SimpleMailMessage;
@@ -26,14 +27,14 @@ public class EmailVerificationService {
     private final UserRepository users;
     private final JdbcTemplate jdbc;
     private final AuditLog audit;
-    private final JavaMailSender mailSender;
+    private final ObjectProvider<JavaMailSender> mailSender;
     private final SecureRandom random = new SecureRandom();
     private final long tokenSeconds;
     private final String frontendUrl;
     private final String deliveryMode;
     private final String from;
 
-    public EmailVerificationService(UserRepository users, JdbcTemplate jdbc, AuditLog audit, JavaMailSender mailSender,
+    public EmailVerificationService(UserRepository users, JdbcTemplate jdbc, AuditLog audit, ObjectProvider<JavaMailSender> mailSender,
             @Value("${payflow.email.verification-token-seconds:3600}") long tokenSeconds,
             @Value("${payflow.email.frontend-url:http://localhost:5173}") String frontendUrl,
             @Value("${payflow.email.delivery-mode:log}") String deliveryMode,
@@ -133,7 +134,11 @@ public class EmailVerificationService {
 
                 This link expires in %d minutes. If you did not create this account, you can ignore this message.
                 """.formatted(link, tokenSeconds / 60));
-        mailSender.send(message);
+        JavaMailSender sender = mailSender.getIfAvailable();
+        if (sender == null) {
+            throw new IllegalStateException("SMTP delivery is enabled but no JavaMailSender is configured");
+        }
+        sender.send(message);
     }
 
     private BusinessException invalid() {
