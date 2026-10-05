@@ -10,46 +10,33 @@ import com.payflow.audit.AuditLog;
 import com.payflow.shared.domain.BusinessException;
 import com.payflow.user.infrastructure.UserEntity;
 import com.payflow.user.infrastructure.UserRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class EmailVerificationService {
-    private static final Logger log = LoggerFactory.getLogger(EmailVerificationService.class);
-
     private final UserRepository users;
     private final JdbcTemplate jdbc;
     private final AuditLog audit;
-    private final ObjectProvider<JavaMailSender> mailSender;
+    private final EmailDeliveryService email;
     private final SecureRandom random = new SecureRandom();
     private final long tokenSeconds;
     private final String frontendUrl;
-    private final String deliveryMode;
-    private final String from;
 
-    public EmailVerificationService(UserRepository users, JdbcTemplate jdbc, AuditLog audit, ObjectProvider<JavaMailSender> mailSender,
+    public EmailVerificationService(UserRepository users, JdbcTemplate jdbc, AuditLog audit, EmailDeliveryService email,
             @Value("${payflow.email.verification-token-seconds:3600}") long tokenSeconds,
-            @Value("${payflow.email.frontend-url:http://localhost:5173}") String frontendUrl,
-            @Value("${payflow.email.delivery-mode:log}") String deliveryMode,
-            @Value("${payflow.email.from:no-reply@payflow.local}") String from) {
+            @Value("${payflow.email.frontend-url:http://localhost:5173}") String frontendUrl) {
         if (tokenSeconds < 300 || tokenSeconds > 86400) {
             throw new IllegalArgumentException("Email verification token lifetime must be between 5 minutes and 24 hours");
         }
         this.users = users;
         this.jdbc = jdbc;
         this.audit = audit;
-        this.mailSender = mailSender;
+        this.email = email;
         this.tokenSeconds = tokenSeconds;
         this.frontendUrl = frontendUrl.replaceAll("/+$", "");
-        this.deliveryMode = deliveryMode;
-        this.from = from;
     }
 
     @Transactional
@@ -114,31 +101,14 @@ public class EmailVerificationService {
     }
 
     private void deliver(String recipient, String link) {
-        if ("log".equalsIgnoreCase(deliveryMode)) {
-            log.info("PayFlow email verification for {}: {}", recipient, link);
-            return;
-        }
-        if (!"smtp".equalsIgnoreCase(deliveryMode)) {
-            throw new IllegalStateException("Unsupported payflow.email.delivery-mode");
-        }
-
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(from);
-        message.setTo(recipient);
-        message.setSubject("Verify your PayFlow email");
-        message.setText("""
+        email.send(recipient, "Verify your PayFlow email", """
                 Welcome to PayFlow.
 
                 Verify your email address using the link below:
                 %s
 
                 This link expires in %d minutes. If you did not create this account, you can ignore this message.
-                """.formatted(link, tokenSeconds / 60));
-        JavaMailSender sender = mailSender.getIfAvailable();
-        if (sender == null) {
-            throw new IllegalStateException("SMTP delivery is enabled but no JavaMailSender is configured");
-        }
-        sender.send(message);
+                """.formatted(link, tokenSeconds / 60), "email verification");
     }
 
     private BusinessException invalid() {
