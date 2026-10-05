@@ -5,7 +5,7 @@
 PayFlow is now deployed: the React frontend runs on Vercel, the Dockerized Spring Boot backend runs on Render, and PostgreSQL is managed by Render. The production environment remains a simulated financial sandbox; no real money is processed.
 
 - Java 21 target, Spring Boot 3.5.16, Maven Wrapper 3.9.16.
-- Flyway V1–V3 creates users, roles, wallets, ledger accounts and entries, sessions, refresh-token hashes, idempotency requests and audit logs in PostgreSQL 16.
+- Flyway V1–V4 creates users, roles, wallets, ledger accounts and entries, sessions, refresh-token hashes, idempotency requests and audit logs in PostgreSQL 16.
 - Framework-independent Money and account/role status enums.
 - Spring Security uses bearer JWTs for authenticated API routes; no generated development user, HTTP Basic, or form login is enabled.
 - Account self-service includes password change, active-session listing and session revocation, with security audit events.
