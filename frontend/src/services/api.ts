@@ -148,6 +148,17 @@ export async function authenticate(
   return value;
 }
 
+export async function verifyEmail(token: string) {
+  await request('/auth/verify-email', {
+    method: 'POST',
+    body: JSON.stringify({ token }),
+  });
+}
+
+export async function resendEmailVerification() {
+  return api<void>('/users/me/email-verification', { method: 'POST' });
+}
+
 export async function logout() {
   await request('/auth/logout', { method: 'POST' });
   setSession(null);

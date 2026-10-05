@@ -7,3 +7,6 @@ spring:
       ddl-auto: validate
 payflow:
   allowed-origins: http://localhost:5173
+  email:
+    frontend-url: http://localhost:5173
+    delivery-mode: log

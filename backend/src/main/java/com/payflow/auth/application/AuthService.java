@@ -23,6 +23,7 @@ public class AuthService {
     private final WalletRepository wallets;
     private final PasswordEncoder passwords;
     private final TokenService tokens;
+    private final EmailVerificationService emailVerification;
     private final LedgerService ledger;
     private final AuditLog audit;
     private final JdbcTemplate jdbc;
@@ -30,10 +31,10 @@ public class AuthService {
     private final String dummyHash;
 
     public AuthService(UserRepository users, WalletRepository wallets, PasswordEncoder passwords,
-            TokenService tokens, LedgerService ledger, AuditLog audit, JdbcTemplate jdbc,
+            TokenService tokens, EmailVerificationService emailVerification, LedgerService ledger, AuditLog audit, JdbcTemplate jdbc,
             @Value("${payflow.default-initial-balance}") BigDecimal initialBalance) {
         this.users = users; this.wallets = wallets; this.passwords = passwords;
-        this.tokens = tokens; this.ledger = ledger; this.audit = audit; this.jdbc = jdbc;
+        this.tokens = tokens; this.emailVerification = emailVerification; this.ledger = ledger; this.audit = audit; this.jdbc = jdbc;
         grant = new Money(initialBalance, Currency.getInstance("USD"));
         if (grant.amount().compareTo(new BigDecimal("999999999999999.99")) > 0) {
             throw new IllegalArgumentException("Opening balance exceeds wallet precision");
@@ -57,6 +58,7 @@ public class AuthService {
         WalletEntity wallet = wallets.saveAndFlush(new WalletEntity(user.id()));
         ledger.openWallet(wallet, grant);
         audit.record("USER_REGISTERED", user.id(), user.id());
+        emailVerification.createAndSend(user.id());
         return tokens.start(user.id());
     }
 
@@ -74,7 +76,7 @@ public class AuthService {
     @Transactional(readOnly = true)
     public UserView me(UUID id) {
         UserEntity user = users.findById(id).orElseThrow(() -> new BusinessException(401, "UNAUTHENTICATED", "Please sign in again."));
-        return new UserView(user.publicId(), user.firstName(), user.lastName(), user.email());
+        return new UserView(user.publicId(), user.firstName(), user.lastName(), user.email(), user.emailVerified());
     }
 
     @Transactional
@@ -82,7 +84,7 @@ public class AuthService {
         UserEntity user = users.findById(id).orElseThrow(() -> new BusinessException(401, "UNAUTHENTICATED", "Please sign in again."));
         user.updateProfile(firstName.strip(), lastName.strip());
         audit.record("PROFILE_UPDATED", id, id);
-        return new UserView(user.publicId(), user.firstName(), user.lastName(), user.email());
+        return new UserView(user.publicId(), user.firstName(), user.lastName(), user.email(), user.emailVerified());
     }
 
     @Transactional
@@ -100,5 +102,5 @@ public class AuthService {
     }
 
     public static String normalizeEmail(String email) { return email.strip().toLowerCase(Locale.ROOT); }
-    public record UserView(String publicId, String firstName, String lastName, String email) {}
+    public record UserView(String publicId, String firstName, String lastName, String email, boolean emailVerified) {}
 }

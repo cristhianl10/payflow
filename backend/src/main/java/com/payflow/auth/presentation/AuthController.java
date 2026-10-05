@@ -20,10 +20,12 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
     private final AuthService auth;
     private final TokenService tokens;
+    private final EmailVerificationService emailVerification;
     private final boolean secure;
 
-    public AuthController(AuthService auth, TokenService tokens, @Value("$" + "{payflow.auth.secure-cookie:false}") boolean secure) {
-        this.auth = auth; this.tokens = tokens; this.secure = secure;
+    public AuthController(AuthService auth, TokenService tokens, EmailVerificationService emailVerification,
+            @Value("$" + "{payflow.auth.secure-cookie:false}") boolean secure) {
+        this.auth = auth; this.tokens = tokens; this.emailVerification = emailVerification; this.secure = secure;
     }
 
     @GetMapping("/auth/csrf")
@@ -32,6 +34,18 @@ public class AuthController {
     @PostMapping("/auth/register")
     ResponseEntity<AuthView> register(@Valid @RequestBody RegisterRequest request) {
         return response(auth.register(request.firstName, request.lastName, request.email, request.password), 201);
+    }
+
+    @PostMapping("/auth/verify-email")
+    ResponseEntity<Void> verifyEmail(@Valid @RequestBody VerifyEmailRequest request) {
+        emailVerification.verify(request.token);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/users/me/email-verification")
+    ResponseEntity<Void> resendVerification(@AuthenticationPrincipal Jwt jwt) {
+        emailVerification.createAndSend(UUID.fromString(jwt.getSubject()));
+        return ResponseEntity.accepted().build();
     }
 
     @PostMapping("/auth/login")
@@ -99,6 +113,7 @@ public class AuthController {
     public record RegisterRequest(@NotBlank @Size(max = 100) String firstName,
             @NotBlank @Size(max = 100) String lastName, @NotBlank @Email @Size(max = 254) String email,
             @NotBlank @Size(min = 10, max = 72) String password) {}
+    public record VerifyEmailRequest(@NotBlank @Size(max = 128) String token) {}
     public record LoginRequest(@NotBlank @Email @Size(max = 254) String email,
             @NotBlank @Size(max = 72) String password) {}
     public record ProfileRequest(@NotBlank @Size(max = 100) String firstName,

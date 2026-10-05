@@ -4,6 +4,7 @@ import { BrowserRouter, Link, Route, Routes } from 'react-router-dom';
 import { bootstrapSession } from '../services/api';
 import { WelcomePage } from '../pages/WelcomePage';
 import { AuthPage } from '../features/auth/AuthPage';
+import { VerifyEmailPage } from '../features/auth/VerifyEmailPage';
 import { AppLayout } from '../layouts/AppLayout';
 import { DashboardPage } from '../pages/DashboardPage';
 import { SendPage } from '../features/transfers/SendPage';
@@ -36,6 +37,7 @@ export function App() {
             path="/register"
             element={<AuthPage key="register" mode="register" />}
           />
+          <Route path="/verify-email" element={<VerifyEmailPage />} />
           <Route path="/app" element={<AppLayout />}>
             <Route index element={<DashboardPage />} />
             <Route path="send" element={<SendPage />} />

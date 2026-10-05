@@ -23,7 +23,9 @@ export function HistoryPage() {
   async function exportHistory() {
     setExporting(true);
     try {
-      const blob = await downloadCsv(`/transactions/export?direction=${direction}`);
+      const blob = await downloadCsv(
+        `/transactions/export?direction=${direction}`,
+      );
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement('a');
       anchor.href = url;

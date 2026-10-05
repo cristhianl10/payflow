@@ -39,6 +39,7 @@ public class UserEntity {
     public String email() { return email; }
     public String passwordHash() { return passwordHash; }
     public UserStatus status() { return status; }
+    public boolean emailVerified() { return emailVerified; }
 
     public void updateProfile(String firstName, String lastName) {
         this.firstName = firstName;
