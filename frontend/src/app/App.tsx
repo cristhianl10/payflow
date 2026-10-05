@@ -5,6 +5,10 @@ import { bootstrapSession } from '../services/api';
 import { WelcomePage } from '../pages/WelcomePage';
 import { AuthPage } from '../features/auth/AuthPage';
 import { VerifyEmailPage } from '../features/auth/VerifyEmailPage';
+import {
+  ForgotPasswordPage,
+  ResetPasswordPage,
+} from '../features/auth/PasswordRecoveryPages';
 import { AppLayout } from '../layouts/AppLayout';
 import { DashboardPage } from '../pages/DashboardPage';
 import { SendPage } from '../features/transfers/SendPage';
@@ -38,6 +42,8 @@ export function App() {
             element={<AuthPage key="register" mode="register" />}
           />
           <Route path="/verify-email" element={<VerifyEmailPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/app" element={<AppLayout />}>
             <Route index element={<DashboardPage />} />
             <Route path="send" element={<SendPage />} />

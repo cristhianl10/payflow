@@ -198,6 +198,11 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
               <span id="password-error" className="field-error">
                 {errors.password?.message}
               </span>
+              {!registration && (
+                <Link className="field-hint" to="/forgot-password">
+                  Forgot your password?
+                </Link>
+              )}
             </div>
             <button
               className="button button-primary button-full"

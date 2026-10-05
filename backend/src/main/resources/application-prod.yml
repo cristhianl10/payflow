@@ -23,6 +23,7 @@ payflow:
     secret: ${JWT_SECRET}
     secure-cookie: true
   email:
+    password-reset-token-seconds: ${PASSWORD_RESET_TOKEN_SECONDS:1800}
     frontend-url: ${FRONTEND_URL}
     delivery-mode: ${EMAIL_DELIVERY_MODE:log}
     from: ${EMAIL_FROM:no-reply@payflow.local}

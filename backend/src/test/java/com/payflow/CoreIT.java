@@ -37,6 +37,7 @@ class CoreIT {
     @Autowired AuthService auth;
     @Autowired TokenService tokens;
     @Autowired EmailVerificationService emailVerification;
+    @Autowired PasswordRecoveryService passwordRecovery;
     @Autowired TransferService transfers;
     @Autowired JdbcTemplate jdbc;
     @Autowired ObjectMapper json;
@@ -89,6 +90,43 @@ class CoreIT {
 
         var invalid = assertThrows(BusinessException.class, () -> emailVerification.verify("unknown-token"));
         assertEquals("INVALID_VERIFICATION_TOKEN", invalid.code());
+    }
+
+    @Test void passwordRecoveryUsesSingleUseTokensAndRevokesExistingSessions() {
+        var alice = register("alice");
+        var secondSession = auth.login("alice@example.com", "strong-password-2026");
+        passwordRecovery.request("ALICE@example.com");
+        assertEquals(1, jdbc.queryForObject("""
+                SELECT count(*) FROM password_reset_tokens
+                WHERE user_id = ? AND consumed_at IS NULL
+                """, Integer.class, alice.userId()));
+
+        jdbc.update("DELETE FROM password_reset_tokens WHERE user_id = ?", alice.userId());
+        String rawToken = "integration-test-password-reset-token";
+        jdbc.update("""
+                INSERT INTO password_reset_tokens(token_hash, user_id, expires_at)
+                VALUES (?, ?, CURRENT_TIMESTAMP + INTERVAL '30 minutes')
+                """, TokenService.hash(rawToken), alice.userId());
+
+        passwordRecovery.reset(rawToken, "new-strong-password-2026");
+        assertTrue(jdbc.queryForObject("""
+                SELECT consumed_at IS NOT NULL FROM password_reset_tokens WHERE token_hash = ?
+                """, Boolean.class, TokenService.hash(rawToken)));
+        assertEquals(0, jdbc.queryForObject("""
+                SELECT count(*) FROM auth_sessions
+                WHERE user_id = ? AND revoked_at IS NULL
+                """, Integer.class, alice.userId()));
+        assertThrows(TokenService.RejectedSession.class, () -> tokens.refresh(secondSession.refreshToken()));
+        assertThrows(BusinessException.class,
+                () -> auth.login("alice@example.com", "strong-password-2026"));
+        assertDoesNotThrow(() -> auth.login("alice@example.com", "new-strong-password-2026"));
+
+        var reused = assertThrows(BusinessException.class,
+                () -> passwordRecovery.reset(rawToken, "another-strong-password-2026"));
+        assertEquals("INVALID_PASSWORD_RESET_TOKEN", reused.code());
+
+        passwordRecovery.request("missing@example.com");
+        assertEquals(1, count("password_reset_tokens"));
     }
 
     @Test void atomicTransferAndIdempotencyReturnIdenticalReceipt() throws Exception {
