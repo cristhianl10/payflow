@@ -128,7 +128,9 @@ export function AccountPage() {
           <div>
             <dt>Email verification</dt>
             <dd>
-              {user.emailVerified ? 'Verified' : 'Pending verification'}
+              {user.emailVerified
+                ? 'Verified'
+                : 'Pending verification'}
             </dd>
           </div>
           <div>
@@ -234,30 +236,32 @@ export function AccountPage() {
           {sessions.isPending ? (
             <p className="field-hint">Loading active sessions…</p>
           ) : (
-            sessions.data?.map((item) => (
-              <div className="session-row" key={item.id}>
-                <div>
-                  <strong>
-                    {item.current ? 'This session' : 'Other session'}
-                  </strong>
-                  <span className="field-hint">
-                    Started{' '}
-                    {new Date(item.createdAt).toLocaleString('en-US')} · Expires{' '}
-                    {new Date(item.expiresAt).toLocaleString('en-US')}
-                  </span>
+            sessions.data?.map((item) => {
+              const started = new Date(item.createdAt).toLocaleString('en-US');
+              const expires = new Date(item.expiresAt).toLocaleString('en-US');
+              return (
+                <div className="session-row" key={item.id}>
+                  <div>
+                    <strong>
+                      {item.current ? 'This session' : 'Other session'}
+                    </strong>
+                    <span className="field-hint">
+                      Started {started} · Expires {expires}
+                    </span>
+                  </div>
+                  {!item.current && (
+                    <button
+                      className="button button-secondary button-small"
+                      type="button"
+                      disabled={revoking === item.id}
+                      onClick={() => void revokeSession(item.id)}
+                    >
+                      {revoking === item.id ? 'Revoking…' : 'Revoke'}
+                    </button>
+                  )}
                 </div>
-                {!item.current && (
-                  <button
-                    className="button button-secondary button-small"
-                    type="button"
-                    disabled={revoking === item.id}
-                    onClick={() => void revokeSession(item.id)}
-                  >
-                    {revoking === item.id ? 'Revoking…' : 'Revoke'}
-                  </button>
-                )}
-              </div>
-            ))
+              );
+            })
           )}
         </section>
         <div className="notice notice-info">
