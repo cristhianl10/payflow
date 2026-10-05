@@ -12,6 +12,8 @@ import com.payflow.shared.domain.BusinessException;
 import com.payflow.user.domain.UserStatus;
 import com.payflow.user.infrastructure.UserEntity;
 import com.payflow.user.infrastructure.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -20,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class PasswordRecoveryService {
+    private static final Logger log = LoggerFactory.getLogger(PasswordRecoveryService.class);
     private final UserRepository users;
     private final JdbcTemplate jdbc;
     private final PasswordEncoder passwords;
@@ -69,15 +72,19 @@ public class PasswordRecoveryService {
                 Timestamp.from(now.plusSeconds(tokenSeconds)));
 
         String link = frontendUrl + "/reset-password?token=" + token;
-        email.send(user.email(), "Reset your PayFlow password", """
-                A password reset was requested for your PayFlow account.
+        try {
+            email.send(user.email(), "Reset your PayFlow password", """
+                    A password reset was requested for your PayFlow account.
 
-                Set a new password using the link below:
-                %s
+                    Set a new password using the link below:
+                    %s
 
-                This link expires in %d minutes. If you did not request this, you can ignore this message.
-                """.formatted(link, tokenSeconds / 60), "password reset");
-        audit.record("PASSWORD_RESET_REQUESTED", user.id(), user.id());
+                    This link expires in %d minutes. If you did not request this, you can ignore this message.
+                    """.formatted(link, tokenSeconds / 60), "password reset");
+            audit.record("PASSWORD_RESET_REQUESTED", user.id(), user.id());
+        } catch (RuntimeException exception) {
+            log.error("Password reset email delivery failed for user {}", user.id(), exception);
+        }
     }
 
     @Transactional
