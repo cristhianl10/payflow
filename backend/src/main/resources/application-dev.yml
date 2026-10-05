@@ -6,6 +6,7 @@ spring:
 payflow:
   allowed-origins: ${FRONTEND_URL:http://localhost:5173}
   email:
+    password-reset-token-seconds: ${PASSWORD_RESET_TOKEN_SECONDS:1800}
     frontend-url: ${FRONTEND_URL:http://localhost:5173}
     delivery-mode: ${EMAIL_DELIVERY_MODE:log}
     from: ${EMAIL_FROM:no-reply@payflow.local}
