@@ -21,11 +21,14 @@ public class AuthController {
     private final AuthService auth;
     private final TokenService tokens;
     private final EmailVerificationService emailVerification;
+    private final PasswordRecoveryService passwordRecovery;
     private final boolean secure;
 
     public AuthController(AuthService auth, TokenService tokens, EmailVerificationService emailVerification,
+            PasswordRecoveryService passwordRecovery,
             @Value("$" + "{payflow.auth.secure-cookie:false}") boolean secure) {
-        this.auth = auth; this.tokens = tokens; this.emailVerification = emailVerification; this.secure = secure;
+        this.auth = auth; this.tokens = tokens; this.emailVerification = emailVerification;
+        this.passwordRecovery = passwordRecovery; this.secure = secure;
     }
 
     @GetMapping("/auth/csrf")
@@ -46,6 +49,18 @@ public class AuthController {
     ResponseEntity<Void> resendVerification(@AuthenticationPrincipal Jwt jwt) {
         emailVerification.createAndSend(UUID.fromString(jwt.getSubject()));
         return ResponseEntity.accepted().build();
+    }
+
+    @PostMapping("/auth/forgot-password")
+    ResponseEntity<Void> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        passwordRecovery.request(request.email);
+        return ResponseEntity.accepted().build();
+    }
+
+    @PostMapping("/auth/reset-password")
+    ResponseEntity<Void> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        passwordRecovery.reset(request.token, request.newPassword);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/auth/login")
@@ -114,6 +129,9 @@ public class AuthController {
             @NotBlank @Size(max = 100) String lastName, @NotBlank @Email @Size(max = 254) String email,
             @NotBlank @Size(min = 10, max = 72) String password) {}
     public record VerifyEmailRequest(@NotBlank @Size(max = 128) String token) {}
+    public record ForgotPasswordRequest(@NotBlank @Email @Size(max = 254) String email) {}
+    public record ResetPasswordRequest(@NotBlank @Size(max = 128) String token,
+            @NotBlank @Size(min = 10, max = 72) String newPassword) {}
     public record LoginRequest(@NotBlank @Email @Size(max = 254) String email,
             @NotBlank @Size(max = 72) String password) {}
     public record ProfileRequest(@NotBlank @Size(max = 100) String firstName,
