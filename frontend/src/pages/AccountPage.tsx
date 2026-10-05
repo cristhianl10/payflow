@@ -3,7 +3,11 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { MailCheck, ShieldCheck } from 'lucide-react';
 import { useSession } from '../hooks/useSession';
 import { Avatar, Notice } from '../components/ui';
-import { api, resendEmailVerification, updateSessionUser } from '../services/api';
+import {
+  api,
+  resendEmailVerification,
+  updateSessionUser,
+} from '../services/api';
 import type { ActiveSession } from '../types/api';
 
 export function AccountPage() {
@@ -69,7 +73,6 @@ export function AccountPage() {
     }
   }
 
-
   async function resendVerification() {
     setError(undefined);
     setNotice(undefined);
@@ -124,7 +127,9 @@ export function AccountPage() {
           </div>
           <div>
             <dt>Email verification</dt>
-            <dd>{user.emailVerified ? 'Verified' : 'Pending verification'}</dd>
+            <dd>
+              {user.emailVerified ? 'Verified' : 'Pending verification'}
+            </dd>
           </div>
           <div>
             <dt>Environment</dt>
@@ -232,9 +237,12 @@ export function AccountPage() {
             sessions.data?.map((item) => (
               <div className="session-row" key={item.id}>
                 <div>
-                  <strong>{item.current ? 'This session' : 'Other session'}</strong>
+                  <strong>
+                    {item.current ? 'This session' : 'Other session'}
+                  </strong>
                   <span className="field-hint">
-                    Started {new Date(item.createdAt).toLocaleString('en-US')} · Expires{' '}
+                    Started{' '}
+                    {new Date(item.createdAt).toLocaleString('en-US')} · Expires{' '}
                     {new Date(item.expiresAt).toLocaleString('en-US')}
                   </span>
                 </div>
