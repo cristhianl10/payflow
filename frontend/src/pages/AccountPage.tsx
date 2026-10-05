@@ -127,11 +127,7 @@ export function AccountPage() {
           </div>
           <div>
             <dt>Email verification</dt>
-            <dd>
-              {user.emailVerified
-                ? 'Verified'
-                : 'Pending verification'}
-            </dd>
+            <dd>{user.emailVerified ? 'Verified' : 'Pending verification'}</dd>
           </div>
           <div>
             <dt>Environment</dt>
