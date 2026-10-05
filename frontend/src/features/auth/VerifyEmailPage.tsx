@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { CheckCircle2, MailCheck } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Logo, Notice } from '../../components/ui';
-import { verifyEmail } from '../../services/api';
+import { api, updateSessionUser, verifyEmail } from '../../services/api';
+import type { User } from '../../types/api';
 
 export function VerifyEmailPage() {
   const [params] = useSearchParams();
@@ -18,7 +19,9 @@ export function VerifyEmailPage() {
     if (!token) return;
     let active = true;
     void verifyEmail(token)
-      .then(() => {
+      .then(async () => {
+        const user = await api<User>('/users/me').catch(() => undefined);
+        if (user) updateSessionUser(user);
         if (active) setStatus('success');
       })
       .catch((failure) => {
