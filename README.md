@@ -15,6 +15,7 @@ The MVP is operational end to end:
 - Double-entry ledger and transaction history.
 - CSV transaction export.
 - Email verification with expiring single-use tokens.
+- Password recovery by email with expiring single-use reset tokens.
 - Password change.
 - Active-session listing and session revocation.
 - Security audit events.
@@ -40,7 +41,6 @@ PayFlow does not handle real money, payments, withdrawals, deposits or bank tran
 
 Deferred capabilities include:
 
-- Password recovery by email.
 - Multifactor authentication.
 - Complete administrator surface.
 - Notifications and advanced antifraud controls.
