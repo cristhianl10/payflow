@@ -14,6 +14,7 @@ The MVP is operational end to end:
 - Atomic, idempotent internal transfers between users.
 - Double-entry ledger and transaction history.
 - CSV transaction export.
+- Email verification with expiring single-use tokens.
 - Password change.
 - Active-session listing and session revocation.
 - Security audit events.
@@ -39,9 +40,7 @@ PayFlow does not handle real money, payments, withdrawals, deposits or bank tran
 
 Deferred capabilities include:
 
-- Email verification.
 - Password recovery by email.
-- SMTP or transactional email provider.
 - Multifactor authentication.
 - Complete administrator surface.
 - Notifications and advanced antifraud controls.
@@ -123,8 +122,16 @@ Production variables are supplied through the hosting platform:
 - `DB_PASSWORD`
 - `FRONTEND_URL`
 - `JWT_SECRET`
+- `EMAIL_DELIVERY_MODE` (`log` or `smtp`)
+- `EMAIL_FROM`
+- `SMTP_HOST`
+- `SMTP_PORT`
+- `SMTP_USERNAME`
+- `SMTP_PASSWORD`
+- `SMTP_AUTH`
+- `SMTP_STARTTLS`
 
-Never commit `.env` files or secrets. `JWT_SECRET` must be unique and contain at least 32 bytes.
+Never commit `.env` files or secrets. `JWT_SECRET` must be unique and contain at least 32 bytes. Email verification uses `log` delivery by default for local/testing environments; configure `EMAIL_DELIVERY_MODE=smtp` and the SMTP variables to send real verification emails.
 
 The health check is public and exposes only basic service status. All user operations require authentication. Transfers validate authorization, balance, idempotency, wallet locking and ledger consistency.
 
