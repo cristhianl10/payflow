@@ -36,6 +36,7 @@ class CoreIT {
     }
     @Autowired AuthService auth;
     @Autowired TokenService tokens;
+    @Autowired EmailVerificationService emailVerification;
     @Autowired TransferService transfers;
     @Autowired JdbcTemplate jdbc;
     @Autowired ObjectMapper json;
@@ -62,6 +63,32 @@ class CoreIT {
         var duplicate = assertThrows(BusinessException.class, () -> auth.register("Alice", "Example", "ALICE@example.com", "strong-password-2026"));
         assertEquals(409, duplicate.status());
         assertEquals(1, count("wallets"));
+    }
+
+    @Test void emailVerificationUsesHashedExpiringSingleUseTokens() {
+        var alice = register("alice");
+        assertFalse(jdbc.queryForObject("SELECT email_verified FROM users WHERE id = ?", Boolean.class, alice.userId()));
+        assertEquals(1, jdbc.queryForObject("""
+                SELECT count(*) FROM email_verification_tokens
+                WHERE user_id = ? AND consumed_at IS NULL
+                """, Integer.class, alice.userId()));
+
+        jdbc.update("DELETE FROM email_verification_tokens WHERE user_id = ?", alice.userId());
+        String rawToken = "integration-test-verification-token";
+        jdbc.update("""
+                INSERT INTO email_verification_tokens(token_hash, user_id, expires_at)
+                VALUES (?, ?, CURRENT_TIMESTAMP + INTERVAL '1 hour')
+                """, TokenService.hash(rawToken), alice.userId());
+
+        emailVerification.verify(rawToken);
+        assertTrue(jdbc.queryForObject("SELECT email_verified FROM users WHERE id = ?", Boolean.class, alice.userId()));
+        assertTrue(jdbc.queryForObject("""
+                SELECT consumed_at IS NOT NULL FROM email_verification_tokens WHERE token_hash = ?
+                """, Boolean.class, TokenService.hash(rawToken)));
+        assertDoesNotThrow(() -> emailVerification.verify(rawToken));
+
+        var invalid = assertThrows(BusinessException.class, () -> emailVerification.verify("unknown-token"));
+        assertEquals("INVALID_VERIFICATION_TOKEN", invalid.code());
     }
 
     @Test void atomicTransferAndIdempotencyReturnIdenticalReceipt() throws Exception {
