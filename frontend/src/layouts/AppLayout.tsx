@@ -12,6 +12,7 @@ import {
   List,
   Wallet,
   UserRound,
+  UsersRound,
   LogOut,
   ShieldCheck,
   Menu,
@@ -26,6 +27,7 @@ const navigation = [
   { to: '/app', end: true, label: 'Overview', Icon: LayoutDashboard },
   { to: '/app/send', label: 'Send money', Icon: ArrowUpRight },
   { to: '/app/transactions', label: 'Activity', Icon: List },
+  { to: '/app/beneficiaries', label: 'Beneficiaries', Icon: UsersRound },
   { to: '/app/wallet', label: 'Your wallet', Icon: Wallet },
   { to: '/app/account', label: 'Account', Icon: UserRound },
 ];
