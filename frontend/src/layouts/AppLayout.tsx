@@ -17,6 +17,7 @@ import {
   LogOut,
   ShieldCheck,
   Bell,
+  CalendarClock,
   Menu,
   X,
 } from 'lucide-react';
@@ -28,6 +29,7 @@ import { Avatar, Loading, Logo, Notice } from '../components/ui';
 const navigation = [
   { to: '/app', end: true, label: 'Overview', Icon: LayoutDashboard },
   { to: '/app/send', label: 'Send money', Icon: ArrowUpRight },
+  { to: '/app/scheduled-transfers', label: 'Scheduled', Icon: CalendarClock },
   { to: '/app/transactions', label: 'Activity', Icon: List },
   { to: '/app/notifications', label: 'Notifications', Icon: Bell },
   { to: '/app/beneficiaries', label: 'Beneficiaries', Icon: UsersRound },
