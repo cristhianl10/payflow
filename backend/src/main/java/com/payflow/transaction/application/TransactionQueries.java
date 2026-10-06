@@ -47,7 +47,7 @@ public class TransactionQueries {
         Object[] owners = direction.equals("all") ? new Object[]{user, user} : new Object[]{user};
         var items = jdbc.query(SELECT + " WHERE " + condition + " ORDER BY j.created_at DESC, j.id DESC",
                 (rs, row) -> map(rs, user), owners);
-        var csv = new StringBuilder("transaction_id,kind,status,direction,amount,currency,counterparty,sender,receiver,description,created_at\n");
+        var csv = new StringBuilder("transaction_id,kind,status,direction,amount,currency,counterparty,sender,receiver,description,reference,created_at\n");
         for (var item : items) {
             csv.append(csv(item.publicId())).append(',')
                     .append(csv(item.kind())).append(',')
@@ -59,6 +59,7 @@ public class TransactionQueries {
                     .append(csv(item.sender())).append(',')
                     .append(csv(item.receiver())).append(',')
                     .append(csv(item.description())).append(',')
+                    .append(csv(item.reference())).append(',')
                     .append(csv(item.createdAt().toString())).append('\n');
         }
         return csv.toString();
@@ -90,9 +91,11 @@ public class TransactionQueries {
         String sender = kind.equals("SANDBOX_GRANT") ? "PayFlow Sandbox"
                 : rs.getString("sender_first_name") + " " + rs.getString("sender_last_name").substring(0, 1) + ".";
         String receiver = rs.getString("receiver_first_name") + " " + rs.getString("receiver_last_name").substring(0, 1) + ".";
-        return new TransactionView(rs.getString("public_id"), kind, "COMPLETED", sent ? "sent" : "received",
+        return new TransactionView(rs.getString("public_id"), kind, rs.getString("status"),
+                sent ? "sent" : "received",
                 rs.getBigDecimal("amount").setScale(2).toPlainString(), rs.getString("currency"),
-                sent ? receiver : sender, sender, receiver, rs.getString("description"), rs.getTimestamp("created_at").toInstant());
+                sent ? receiver : sender, sender, receiver, rs.getString("description"),
+                rs.getString("reference"), rs.getTimestamp("created_at").toInstant());
     }
 
     private String csv(String value) {
@@ -102,6 +105,7 @@ public class TransactionQueries {
     }
 
     public record TransactionView(String publicId, String kind, String status, String direction, String amount,
-            String currency, String counterparty, String sender, String receiver, String description, Instant createdAt) {}
+            String currency, String counterparty, String sender, String receiver, String description, String reference,
+            Instant createdAt) {}
     public record Page(List<TransactionView> content, int page, int size, long totalElements) {}
 }
