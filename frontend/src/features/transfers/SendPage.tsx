@@ -421,8 +421,8 @@ export function SendPage() {
             <div className="transfer-guidance">
               <h3>Transfer limits</h3>
               <p>
-                Up to ${rules.data.maxPerOperation} USD per transfer and
-                ${rules.data.dailyLimit} USD per day.
+                Up to ${rules.data.maxPerOperation} USD per transfer and $
+                {rules.data.dailyLimit} USD per day.
               </p>
             </div>
           )}
