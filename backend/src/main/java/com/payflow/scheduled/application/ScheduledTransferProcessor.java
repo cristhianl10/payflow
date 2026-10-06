@@ -55,9 +55,9 @@ public class ScheduledTransferProcessor {
             store.markFailed(id, exception.code(), exception.getMessage());
             notifyFailure(job, exception.code(), exception.getMessage());
         } catch (Exception exception) {
-            log.error("Scheduled transfer {} failed unexpectedly", job.publicId(), exception);
-            store.markFailed(id, "SCHEDULED_TRANSFER_FAILED", "The scheduled transfer could not be completed.");
-            notifyFailure(job, "SCHEDULED_TRANSFER_FAILED", "The scheduled transfer could not be completed.");
+            // The transfer may already have committed while the final job-status update failed.
+            // Keep PROCESSING so stale recovery retries with the same idempotency key.
+            log.error("Scheduled transfer {} encountered an uncertain technical failure", job.publicId(), exception);
         }
     }
 
