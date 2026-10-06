@@ -67,6 +67,15 @@ test('a registered user can send simulated funds and find the completed transfer
     .click();
   await expect(bob.getByText('Alice E.')).toBeVisible();
   await expect(bob.getByText('$125.00 USD')).toBeVisible();
+
+  await bob
+    .getByRole('navigation', { name: 'Main navigation' })
+    .getByRole('link', { name: 'Notifications' })
+    .click();
+  await expect(bob.getByText('Money received')).toBeVisible();
+  await expect(bob.getByText(/You received \$125.00 USD from Alice E\./)).toBeVisible();
+  await bob.getByRole('button', { name: 'Mark all as read' }).click();
+  await expect(bob.getByText('Unread')).toHaveCount(0);
 });
 
 test('a user can save a beneficiary and start a transfer from it', async ({
