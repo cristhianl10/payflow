@@ -51,6 +51,12 @@ export function Receipt({ transaction }: { transaction: Transaction }) {
             </time>
           </dd>
         </div>
+        {transaction.reference && (
+          <div>
+            <dt>Your reference</dt>
+            <dd>{transaction.reference}</dd>
+          </div>
+        )}
         {transaction.description && (
           <div>
             <dt>Description</dt>
@@ -58,7 +64,7 @@ export function Receipt({ transaction }: { transaction: Transaction }) {
           </div>
         )}
         <div className="reference-row">
-          <dt>Reference</dt>
+          <dt>Transaction ID</dt>
           <dd>
             {transaction.publicId}
             <CopyButton value={transaction.publicId} label="Copy reference" />
