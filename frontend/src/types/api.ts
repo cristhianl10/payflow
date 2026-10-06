@@ -81,3 +81,18 @@ export type NotificationPage = {
   size: number;
   totalElements: number;
 };
+
+export type ScheduledTransfer = {
+  publicId: string;
+  recipientEmail: string;
+  amount: string;
+  currency: 'USD';
+  description: string;
+  reference?: string | null;
+  executeAt: string;
+  status: 'SCHEDULED' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+  failureCode?: string | null;
+  failureMessage?: string | null;
+  operationPublicId?: string | null;
+  createdAt: string;
+};
