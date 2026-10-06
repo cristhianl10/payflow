@@ -8,6 +8,8 @@ import com.payflow.audit.AuditLog;
 import com.payflow.auth.application.AuthService;
 import com.payflow.auth.application.TokenService;
 import com.payflow.ledger.application.LedgerService;
+import com.payflow.notification.application.NotificationPublisher;
+import com.payflow.notification.domain.NotificationEvent;
 import com.payflow.shared.domain.*;
 import com.payflow.transaction.application.TransactionQueries;
 import com.payflow.user.domain.UserStatus;
@@ -27,15 +29,18 @@ public class TransferService {
     private final JdbcTemplate jdbc;
     private final ObjectMapper json;
     private final AuditLog audit;
+    private final NotificationPublisher notifications;
     private final BigDecimal maxPerOperation;
     private final BigDecimal dailyLimit;
 
     public TransferService(WalletRepository wallets, UserRepository users, LedgerService ledger,
             TransactionQueries transactions, JdbcTemplate jdbc, ObjectMapper json, AuditLog audit,
+            NotificationPublisher notifications,
             @Value("${payflow.transfer.max-per-operation:7500.00}") BigDecimal maxPerOperation,
             @Value("${payflow.transfer.daily-limit:15000.00}") BigDecimal dailyLimit) {
         this.wallets = wallets; this.users = users; this.ledger = ledger;
         this.transactions = transactions; this.jdbc = jdbc; this.json = json; this.audit = audit;
+        this.notifications = notifications;
         if (maxPerOperation.signum() <= 0 || dailyLimit.signum() <= 0 || dailyLimit.compareTo(maxPerOperation) < 0) {
             throw new IllegalArgumentException("Transfer limits must be positive and daily limit must cover one operation");
         }
@@ -132,6 +137,23 @@ public class TransferService {
                 WHERE user_id = ? AND idempotency_key = ?
                 """, operation.id(), result, sender, key);
         audit.record("TRANSFER_COMPLETED", sender, operation.id());
+
+        UserEntity senderUser = users.findById(sender).orElseThrow(this::unavailable);
+        String amountLabel = "$" + money.amount().setScale(2).toPlainString() + " USD";
+        notifications.publish(new NotificationEvent(
+                senderUser.id(), senderUser.email(), "TRANSFER_SENT", "Transfer sent",
+                "You sent " + amountLabel + " to " + receiver.firstName() + " " + receiver.lastName().substring(0, 1) + ".",
+                "/app/transactions/" + operation.publicId(),
+                "PayFlow transfer sent",
+                "Your transfer of " + amountLabel + " to " + receiver.firstName() + " was completed successfully."));
+        notifications.publish(new NotificationEvent(
+                receiver.id(), receiver.email(), "TRANSFER_RECEIVED", "Money received",
+                "You received " + amountLabel + " from " + senderUser.firstName() + " "
+                        + senderUser.lastName().substring(0, 1) + ".",
+                "/app/transactions/" + operation.publicId(),
+                "You received money in PayFlow",
+                "You received " + amountLabel + " from " + senderUser.firstName() + " in PayFlow."));
+
         return result;
     }
 
