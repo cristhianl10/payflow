@@ -89,7 +89,15 @@ test('a user can save a beneficiary and start a transfer from it', async ({
 
   await alice.getByLabel('PayFlow email').fill('bob-beneficiary@example.com');
   await alice.getByLabel('Alias').fill('Bobby');
-  await alice.getByRole('button', { name: 'Add beneficiary' }).click();
+  const [created] = await Promise.all([
+    alice.waitForResponse(
+      (response) =>
+        response.url().includes('/api/v1/beneficiaries') &&
+        response.request().method() === 'POST',
+    ),
+    alice.getByRole('button', { name: 'Add beneficiary' }).click(),
+  ]);
+  expect(created.status(), await created.text()).toBe(201);
 
   await expect(alice.getByText('Bobby')).toBeVisible();
   await expect(alice.getByText('bob-beneficiary@example.com')).toBeVisible();
