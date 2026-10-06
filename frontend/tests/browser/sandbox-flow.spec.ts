@@ -102,7 +102,10 @@ test('a user can save a beneficiary and start a transfer from it', async ({
   await expect(alice.getByText('Bobby')).toBeVisible();
   await expect(alice.getByText('bob-beneficiary@example.com')).toBeVisible();
 
-  await alice.getByRole('link', { name: 'Send money' }).click();
+  await alice
+    .locator('#main-content')
+    .getByRole('link', { name: 'Send money' })
+    .click();
   await expect(alice.getByLabel('Recipient’s email')).toHaveValue(
     'bob-beneficiary@example.com',
   );
