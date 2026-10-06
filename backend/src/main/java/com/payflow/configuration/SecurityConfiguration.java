@@ -51,7 +51,8 @@ public class SecurityConfiguration {
                                 "/api/v1/auth/forgot-password", "/api/v1/auth/reset-password").permitAll()
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/v1/users/me/**", "/api/v1/wallets/**", "/api/v1/transfers/**",
-                                "/api/v1/transactions/**", "/api/v1/beneficiaries/**").hasRole("USER")
+                                "/api/v1/transactions/**", "/api/v1/beneficiaries",
+                                "/api/v1/beneficiaries/**").hasRole("USER")
                         .anyRequest().denyAll())
                 .oauth2ResourceServer(resource -> resource.jwt(jwt -> jwt.jwtAuthenticationConverter(tokens::authenticate))
                         .authenticationEntryPoint(unauthenticated))
