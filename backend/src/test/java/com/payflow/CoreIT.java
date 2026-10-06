@@ -40,6 +40,7 @@ class CoreIT {
     @Autowired PasswordRecoveryService passwordRecovery;
     @Autowired com.payflow.beneficiary.application.BeneficiaryService beneficiaries;
     @Autowired TransferService transfers;
+    @Autowired com.payflow.transaction.application.TransactionQueries transactionQueries;
     @Autowired JdbcTemplate jdbc;
     @Autowired ObjectMapper json;
     @Autowired PlatformTransactionManager manager;
@@ -224,6 +225,36 @@ class CoreIT {
                         "0.01", "USD", "Daily limit", "INV-2026-003"));
         assertEquals("DAILY_TRANSFER_LIMIT_EXCEEDED", daily.code());
         assertReconciled();
+    }
+
+    @Test void advancedHistoryFiltersSearchSortAndValidateRanges() {
+        var alice = register("alice");
+        register("bob");
+        register("charlie");
+
+        transfers.send(alice.userId(), UUID.randomUUID(), "bob@example.com",
+                "125.50", "USD", "Lunch downtown", "LUNCH-125");
+        transfers.send(alice.userId(), UUID.randomUUID(), "charlie@example.com",
+                "300.00", "USD", "Shared trip", "TRIP-300");
+
+        var search = transactionQueries.history(alice.userId(), 0, 10,
+                new com.payflow.transaction.application.TransactionQueries.Filters(
+                        "all", "transfer", "completed", "trip-300", null, null, null, null, "newest"));
+        assertEquals(1, search.totalElements());
+        assertEquals("TRIP-300", search.content().getFirst().reference());
+
+        var amount = transactionQueries.history(alice.userId(), 0, 10,
+                new com.payflow.transaction.application.TransactionQueries.Filters(
+                        "sent", "transfer", "all", null, null, null, "200", "400", "amount_desc"));
+        assertEquals(1, amount.totalElements());
+        assertEquals("300.00", amount.content().getFirst().amount());
+
+        var invalid = assertThrows(BusinessException.class,
+                () -> transactionQueries.history(alice.userId(), 0, 10,
+                        new com.payflow.transaction.application.TransactionQueries.Filters(
+                                "all", "all", "all", null, "2026-10-10", "2026-10-01",
+                                null, null, "newest")));
+        assertEquals("INVALID_FILTER", invalid.code());
     }
 
     @Test void duplicateConcurrentRequestsCommitOnlyOnce() throws Exception {

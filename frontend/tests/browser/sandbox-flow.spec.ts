@@ -56,6 +56,10 @@ test('a registered user can send simulated funds and find the completed transfer
   await alice.getByRole('link', { name: 'View activity' }).click();
   await expect(alice.getByText('Lunch')).toBeVisible();
   await expect(alice.getByText('Bob E.')).toBeVisible();
+  await alice.getByLabel('Search activity').fill('Lunch');
+  await alice.getByLabel('Type').selectOption('transfer');
+  await expect(alice.getByText('Lunch')).toBeVisible();
+  await expect(alice.getByText('1 movements')).toBeVisible();
 
   await bob
     .getByRole('navigation', { name: 'Main navigation' })
