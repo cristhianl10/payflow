@@ -112,7 +112,9 @@ export function NotificationsPage() {
               of{' '}
               {Math.max(
                 1,
-                Math.ceil(notifications.data.totalElements / notifications.data.size),
+                Math.ceil(
+                  notifications.data.totalElements / notifications.data.size,
+                ),
               )}
             </span>
             <div>
@@ -138,9 +140,7 @@ export function NotificationsPage() {
         </>
       ) : (
         <section className="content-panel">
-          <p className="field-hint">
-            You do not have any notifications yet.
-          </p>
+          <p className="field-hint">You do not have any notifications yet.</p>
         </section>
       )}
     </>
