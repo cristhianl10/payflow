@@ -16,14 +16,26 @@ public class TransactionController {
 
     @GetMapping
     TransactionQueries.Page history(@AuthenticationPrincipal Jwt jwt, @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size, @RequestParam(defaultValue = "all") String direction) {
-        return queries.history(UUID.fromString(jwt.getSubject()), page, size, direction);
+            @RequestParam(defaultValue = "10") int size, @RequestParam(defaultValue = "all") String direction,
+            @RequestParam(defaultValue = "all") String kind, @RequestParam(defaultValue = "all") String status,
+            @RequestParam(required = false) String search, @RequestParam(required = false) String from,
+            @RequestParam(required = false) String to, @RequestParam(required = false) String minAmount,
+            @RequestParam(required = false) String maxAmount,
+            @RequestParam(defaultValue = "newest") String sort) {
+        return queries.history(UUID.fromString(jwt.getSubject()), page, size,
+                new TransactionQueries.Filters(direction, kind, status, search, from, to, minAmount, maxAmount, sort));
     }
 
     @GetMapping(value = "/export", produces = "text/csv")
     ResponseEntity<byte[]> export(@AuthenticationPrincipal Jwt jwt,
-            @RequestParam(defaultValue = "all") String direction) {
-        byte[] body = queries.exportCsv(UUID.fromString(jwt.getSubject()), direction)
+            @RequestParam(defaultValue = "all") String direction,
+            @RequestParam(defaultValue = "all") String kind, @RequestParam(defaultValue = "all") String status,
+            @RequestParam(required = false) String search, @RequestParam(required = false) String from,
+            @RequestParam(required = false) String to, @RequestParam(required = false) String minAmount,
+            @RequestParam(required = false) String maxAmount,
+            @RequestParam(defaultValue = "newest") String sort) {
+        byte[] body = queries.exportCsv(UUID.fromString(jwt.getSubject()),
+                new TransactionQueries.Filters(direction, kind, status, search, from, to, minAmount, maxAmount, sort))
                 .getBytes(StandardCharsets.UTF_8);
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType("text/csv;charset=UTF-8"))
