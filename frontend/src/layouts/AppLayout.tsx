@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+  Link,
   NavLink,
   Navigate,
   Outlet,
@@ -15,18 +16,20 @@ import {
   UsersRound,
   LogOut,
   ShieldCheck,
+  Bell,
   Menu,
   X,
 } from 'lucide-react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSession } from '../hooks/useSession';
-import { logout } from '../services/api';
+import { api, logout } from '../services/api';
 import { Avatar, Loading, Logo, Notice } from '../components/ui';
 
 const navigation = [
   { to: '/app', end: true, label: 'Overview', Icon: LayoutDashboard },
   { to: '/app/send', label: 'Send money', Icon: ArrowUpRight },
   { to: '/app/transactions', label: 'Activity', Icon: List },
+  { to: '/app/notifications', label: 'Notifications', Icon: Bell },
   { to: '/app/beneficiaries', label: 'Beneficiaries', Icon: UsersRound },
   { to: '/app/wallet', label: 'Your wallet', Icon: Wallet },
   { to: '/app/account', label: 'Account', Icon: UserRound },
@@ -38,6 +41,12 @@ export function AppLayout() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>();
   const queries = useQueryClient();
+  const unread = useQuery({
+    queryKey: ['notifications-unread'],
+    queryFn: () => api<{ count: number }>('/notifications/unread-count'),
+    enabled: !!session,
+    refetchInterval: 30_000,
+  });
   const navigate = useNavigate();
   const location = useLocation();
   if (session === undefined) return <Loading />;
@@ -123,6 +132,20 @@ export function AppLayout() {
             <strong>{current?.label ?? 'Transaction details'}</strong>
           </span>
           <div className="topbar-user">
+            <Link
+              className="icon-button"
+              to="/app/notifications"
+              aria-label={
+                unread.data?.count
+                  ? `Notifications, ${unread.data.count} unread`
+                  : 'Notifications'
+              }
+            >
+              <Bell size={18} aria-hidden="true" />
+              {!!unread.data?.count && (
+                <span className="sandbox-badge">{unread.data.count}</span>
+              )}
+            </Link>
             <span className="sandbox-badge">Sandbox</span>
             <Avatar name={name} small />
             <span className="topbar-name">{session.user.firstName}</span>

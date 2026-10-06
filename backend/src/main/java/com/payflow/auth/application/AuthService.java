@@ -7,6 +7,8 @@ import java.util.Locale;
 import java.util.UUID;
 import com.payflow.audit.AuditLog;
 import com.payflow.ledger.application.LedgerService;
+import com.payflow.notification.application.NotificationPublisher;
+import com.payflow.notification.domain.NotificationEvent;
 import com.payflow.shared.domain.*;
 import com.payflow.user.domain.UserStatus;
 import com.payflow.user.infrastructure.*;
@@ -26,15 +28,18 @@ public class AuthService {
     private final EmailVerificationService emailVerification;
     private final LedgerService ledger;
     private final AuditLog audit;
+    private final NotificationPublisher notifications;
     private final JdbcTemplate jdbc;
     private final Money grant;
     private final String dummyHash;
 
     public AuthService(UserRepository users, WalletRepository wallets, PasswordEncoder passwords,
-            TokenService tokens, EmailVerificationService emailVerification, LedgerService ledger, AuditLog audit, JdbcTemplate jdbc,
+            TokenService tokens, EmailVerificationService emailVerification, LedgerService ledger, AuditLog audit,
+            NotificationPublisher notifications, JdbcTemplate jdbc,
             @Value("${payflow.default-initial-balance}") BigDecimal initialBalance) {
         this.users = users; this.wallets = wallets; this.passwords = passwords;
-        this.tokens = tokens; this.emailVerification = emailVerification; this.ledger = ledger; this.audit = audit; this.jdbc = jdbc;
+        this.tokens = tokens; this.emailVerification = emailVerification; this.ledger = ledger; this.audit = audit;
+        this.notifications = notifications; this.jdbc = jdbc;
         grant = new Money(initialBalance, Currency.getInstance("USD"));
         if (grant.amount().compareTo(new BigDecimal("999999999999999.99")) > 0) {
             throw new IllegalArgumentException("Opening balance exceeds wallet precision");
@@ -70,6 +75,10 @@ public class AuthService {
             throw new BusinessException(401, "INVALID_CREDENTIALS", "The email or password is incorrect, or this account is unavailable.");
         }
         audit.record("LOGIN_SUCCESS", found.get().id(), found.get().id());
+        notifications.publish(new NotificationEvent(
+                found.get().id(), found.get().email(), "SECURITY_LOGIN", "New sign-in",
+                "A new PayFlow session was created for your account.", "/app/account",
+                null, null));
         return tokens.start(found.get().id());
     }
 
@@ -99,6 +108,11 @@ public class AuthService {
         user.changePassword(passwords.encode(newPassword));
         jdbc.update("UPDATE auth_sessions SET revoked_at = COALESCE(revoked_at, CURRENT_TIMESTAMP) WHERE user_id = ?", id);
         audit.record("PASSWORD_CHANGED", id, id);
+        notifications.publish(new NotificationEvent(
+                user.id(), user.email(), "SECURITY_PASSWORD_CHANGED", "Password changed",
+                "Your PayFlow password was changed and existing sessions were signed out.", "/app/account",
+                "Your PayFlow password was changed",
+                "Your PayFlow password was changed. Existing sessions were signed out for security. If this was not you, reset your password immediately."));
     }
 
     public static String normalizeEmail(String email) { return email.strip().toLowerCase(Locale.ROOT); }
