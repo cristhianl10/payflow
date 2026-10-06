@@ -160,8 +160,8 @@ test('a user can schedule and cancel a future transfer', async ({
   await alice.getByRole('button', { name: 'Schedule transfer' }).click();
 
   await expect(alice.getByText('bob-scheduler@example.com')).toBeVisible();
-  await expect(alice.getByText(/SCHEDULED/)).toBeVisible();
+  await expect(alice.getByText('$75.00 USD · SCHEDULED')).toBeVisible();
 
   await alice.getByRole('button', { name: 'Cancel' }).click();
-  await expect(alice.getByText(/CANCELLED/)).toBeVisible();
+  await expect(alice.getByText('$75.00 USD · CANCELLED')).toBeVisible();
 });
