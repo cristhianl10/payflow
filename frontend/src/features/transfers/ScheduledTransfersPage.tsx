@@ -28,7 +28,7 @@ export function ScheduledTransfersPage() {
     refetchInterval: 30_000,
   });
 
-  const minimum = useMemo(minLocalDateTime, []);
+  const minimum = useMemo(() => minLocalDateTime(), []);
 
   async function create(event: React.FormEvent) {
     event.preventDefault();
