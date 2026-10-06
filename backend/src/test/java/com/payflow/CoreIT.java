@@ -190,8 +190,8 @@ class CoreIT {
 
     @Test void simultaneousOverspendingAllowsOnlyOneTransfer() throws Exception {
         var alice = register("alice"); register("bob");
-        var results = race(List.of(() -> send(alice, "bob", "8000", UUID.randomUUID()),
-                () -> send(alice, "bob", "7000", UUID.randomUUID())));
+        var results = race(List.of(() -> send(alice, "bob", "7000", UUID.randomUUID()),
+                () -> send(alice, "bob", "4000", UUID.randomUUID())));
         assertEquals(1, results.stream().filter(result -> result instanceof String).count());
         assertEquals(1, results.stream().filter(result -> result instanceof BusinessException e && e.code().equals("INSUFFICIENT_FUNDS")).count());
         assertEquals(3, count("journal_operations"));
