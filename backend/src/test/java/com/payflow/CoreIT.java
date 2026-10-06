@@ -42,6 +42,8 @@ class CoreIT {
     @Autowired com.payflow.notification.application.NotificationService notifications;
     @Autowired TransferService transfers;
     @Autowired com.payflow.transaction.application.TransactionQueries transactionQueries;
+    @Autowired com.payflow.scheduled.application.ScheduledTransferService scheduledTransfers;
+    @Autowired com.payflow.scheduled.application.ScheduledTransferProcessor scheduledProcessor;
     @Autowired JdbcTemplate jdbc;
     @Autowired ObjectMapper json;
     @Autowired PlatformTransactionManager manager;
@@ -186,6 +188,59 @@ class CoreIT {
         var ownership = assertThrows(BusinessException.class,
                 () -> notifications.markRead(alice.userId(), bobInbox.content().getFirst().publicId()));
         assertEquals("NOTIFICATION_NOT_FOUND", ownership.code());
+    }
+
+    @Test void scheduledTransfersExecuteOnceCancelAndFailSafely() {
+        var alice = register("alice");
+        register("bob");
+
+        var scheduled = scheduledTransfers.create(
+                alice.userId(), "bob@example.com", "125.00", "USD",
+                "Scheduled lunch", "SCH-001", java.time.Instant.now().plusSeconds(120));
+        assertEquals("SCHEDULED", scheduled.status());
+
+        jdbc.update("""
+                UPDATE scheduled_transfers
+                SET execute_at = CURRENT_TIMESTAMP - INTERVAL '1 minute'
+                WHERE public_id = ?
+                """, scheduled.publicId());
+        scheduledProcessor.processDue();
+
+        var completed = scheduledTransfers.detail(alice.userId(), scheduled.publicId());
+        assertEquals("COMPLETED", completed.status());
+        assertNotNull(completed.operationPublicId());
+        assertEquals(1, jdbc.queryForObject("""
+                SELECT count(*) FROM journal_operations WHERE reference = 'SCH-001'
+                """, Integer.class));
+
+        scheduledProcessor.processDue();
+        assertEquals(1, jdbc.queryForObject("""
+                SELECT count(*) FROM journal_operations WHERE reference = 'SCH-001'
+                """, Integer.class));
+
+        var cancelled = scheduledTransfers.create(
+                alice.userId(), "bob@example.com", "50.00", "USD",
+                "Cancel me", "SCH-002", java.time.Instant.now().plusSeconds(120));
+        scheduledTransfers.cancel(alice.userId(), cancelled.publicId());
+        assertEquals("CANCELLED",
+                scheduledTransfers.detail(alice.userId(), cancelled.publicId()).status());
+
+        transfers.send(alice.userId(), UUID.randomUUID(), "bob@example.com",
+                "5000", "USD", "Drain balance", "DRAIN-001");
+        var doomed = scheduledTransfers.create(
+                alice.userId(), "bob@example.com", "7000.00", "USD",
+                "Insufficient later", "SCH-003", java.time.Instant.now().plusSeconds(120));
+        jdbc.update("""
+                UPDATE scheduled_transfers
+                SET execute_at = CURRENT_TIMESTAMP - INTERVAL '1 minute'
+                WHERE public_id = ?
+                """, doomed.publicId());
+        scheduledProcessor.processDue();
+
+        var failed = scheduledTransfers.detail(alice.userId(), doomed.publicId());
+        assertEquals("FAILED", failed.status());
+        assertNotNull(failed.failureCode());
+        assertNull(failed.operationPublicId());
     }
 
     @Test void atomicTransferAndIdempotencyReturnIdenticalReceipt() throws Exception {
