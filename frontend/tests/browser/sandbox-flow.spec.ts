@@ -64,3 +64,49 @@ test('a registered user can send simulated funds and find the completed transfer
   await expect(bob.getByText('Alice E.')).toBeVisible();
   await expect(bob.getByText('$125.00 USD')).toBeVisible();
 });
+
+test('a user can save a beneficiary and start a transfer from it', async ({
+  browser,
+}) => {
+  const alice = await browser.newPage();
+  const bob = await browser.newPage();
+
+  await register(alice, {
+    firstName: 'Alice',
+    lastName: 'Beneficiary',
+    email: 'alice-beneficiary@example.com',
+  });
+  await register(bob, {
+    firstName: 'Bob',
+    lastName: 'Beneficiary',
+    email: 'bob-beneficiary@example.com',
+  });
+
+  await alice
+    .getByRole('navigation', { name: 'Main navigation' })
+    .getByRole('link', { name: 'Beneficiaries' })
+    .click();
+
+  await alice.getByLabel('PayFlow email').fill('bob-beneficiary@example.com');
+  await alice.getByLabel('Alias').fill('Bobby');
+  const [created] = await Promise.all([
+    alice.waitForResponse(
+      (response) =>
+        response.url().includes('/api/v1/beneficiaries') &&
+        response.request().method() === 'POST',
+    ),
+    alice.getByRole('button', { name: 'Add beneficiary' }).click(),
+  ]);
+  expect(created.status(), await created.text()).toBe(201);
+
+  await expect(alice.getByText('Bobby')).toBeVisible();
+  await expect(alice.getByText('bob-beneficiary@example.com')).toBeVisible();
+
+  await alice
+    .locator('#main-content')
+    .getByRole('link', { name: 'Send money' })
+    .click();
+  await expect(alice.getByLabel('Recipient’s email')).toHaveValue(
+    'bob-beneficiary@example.com',
+  );
+});

@@ -51,7 +51,7 @@ public class SecurityConfiguration {
                                 "/api/v1/auth/forgot-password", "/api/v1/auth/reset-password").permitAll()
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/v1/users/me/**", "/api/v1/wallets/**", "/api/v1/transfers/**",
-                                "/api/v1/transactions/**").hasRole("USER")
+                                "/api/v1/transactions/**", "/api/v1/beneficiaries/**").hasRole("USER")
                         .anyRequest().denyAll())
                 .oauth2ResourceServer(resource -> resource.jwt(jwt -> jwt.jwtAuthenticationConverter(tokens::authenticate))
                         .authenticationEntryPoint(unauthenticated))
@@ -73,7 +73,7 @@ public class SecurityConfiguration {
         }
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(origins);
-        configuration.setAllowedMethods(List.of("GET", "POST", "PATCH", "DELETE", "OPTIONS"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Idempotency-Key", "X-CSRF-TOKEN"));
         configuration.setExposedHeaders(List.of("X-Correlation-ID"));
         configuration.setAllowCredentials(true);

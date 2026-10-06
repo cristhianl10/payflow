@@ -38,6 +38,7 @@ class CoreIT {
     @Autowired TokenService tokens;
     @Autowired EmailVerificationService emailVerification;
     @Autowired PasswordRecoveryService passwordRecovery;
+    @Autowired com.payflow.beneficiary.application.BeneficiaryService beneficiaries;
     @Autowired TransferService transfers;
     @Autowired JdbcTemplate jdbc;
     @Autowired ObjectMapper json;
@@ -127,6 +128,34 @@ class CoreIT {
 
         passwordRecovery.request("missing@example.com");
         assertEquals(1, count("password_reset_tokens"));
+    }
+
+    @Test void beneficiaryCrudEnforcesOwnershipSelfAndDuplicates() {
+        var alice = register("alice");
+        var bob = register("bob");
+
+        var saved = beneficiaries.create(alice.userId(), "BOB@example.com", "  Bobby  ");
+        assertEquals("Bobby", saved.alias());
+        assertEquals("bob@example.com", saved.email());
+        assertEquals(1, beneficiaries.list(alice.userId()).size());
+
+        var duplicate = assertThrows(BusinessException.class,
+                () -> beneficiaries.create(alice.userId(), "bob@example.com", "Again"));
+        assertEquals("BENEFICIARY_EXISTS", duplicate.code());
+
+        var self = assertThrows(BusinessException.class,
+                () -> beneficiaries.create(alice.userId(), "alice@example.com", "Me"));
+        assertEquals("SELF_BENEFICIARY", self.code());
+
+        var updated = beneficiaries.update(alice.userId(), saved.publicId(), "Friend");
+        assertEquals("Friend", updated.alias());
+
+        var forbiddenOwnership = assertThrows(BusinessException.class,
+                () -> beneficiaries.update(bob.userId(), saved.publicId(), "Not mine"));
+        assertEquals("BENEFICIARY_NOT_FOUND", forbiddenOwnership.code());
+
+        beneficiaries.delete(alice.userId(), saved.publicId());
+        assertTrue(beneficiaries.list(alice.userId()).isEmpty());
     }
 
     @Test void atomicTransferAndIdempotencyReturnIdenticalReceipt() throws Exception {

@@ -50,3 +50,11 @@ export type TransferInput = {
   currency: 'USD';
   description: string;
 };
+
+export type Beneficiary = {
+  publicId: string;
+  alias?: string | null;
+  email: string;
+  displayName: string;
+  createdAt: string;
+};

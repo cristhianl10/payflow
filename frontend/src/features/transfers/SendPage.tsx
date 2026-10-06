@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft,
@@ -70,6 +70,7 @@ function savedReview(storageKey: string): Review | undefined {
 
 export function SendPage() {
   const session = useSession();
+  const [searchParams] = useSearchParams();
   const storageKey = `payflow-pending-transfer:${session?.user.publicId}`;
   const [review, setReview] = useState<Review | undefined>(() =>
     savedReview(storageKey),
@@ -88,7 +89,11 @@ export function SendPage() {
     setError: setFieldError,
     formState: { errors },
   } = useForm<z.infer<typeof inputSchema>>({
-    defaultValues: { recipient: '', amount: '', description: '' },
+    defaultValues: {
+      recipient: searchParams.get('recipient') ?? '',
+      amount: '',
+      description: '',
+    },
   });
 
   const prepare = handleSubmit(async (values) => {
