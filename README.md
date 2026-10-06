@@ -12,6 +12,7 @@ The MVP is operational end to end:
 - HttpOnly and Secure cookies in production.
 - One USD wallet per account with simulated opening funds.
 - Atomic, idempotent internal transfers between users.
+- Transfer references, persisted completion status and configurable per-operation/daily limits.
 - Double-entry ledger and transaction history.
 - CSV transaction export.
 - Email verification with expiring single-use tokens.
@@ -123,6 +124,8 @@ Production variables are supplied through the hosting platform:
 - `DB_PASSWORD`
 - `FRONTEND_URL`
 - `JWT_SECRET`
+- `TRANSFER_MAX_PER_OPERATION`
+- `TRANSFER_DAILY_LIMIT`
 - `EMAIL_DELIVERY_MODE` (`log` or `smtp`)
 - `EMAIL_FROM`
 - `SMTP_HOST`
@@ -134,7 +137,7 @@ Production variables are supplied through the hosting platform:
 
 Never commit `.env` files or secrets. `JWT_SECRET` must be unique and contain at least 32 bytes. Email verification uses `log` delivery by default for local/testing environments; configure `EMAIL_DELIVERY_MODE=smtp` and the SMTP variables to send real verification emails.
 
-The health check is public and exposes only basic service status. All user operations require authentication. Transfers validate authorization, balance, idempotency, wallet locking and ledger consistency.
+The health check is public and exposes only basic service status. All user operations require authentication. Transfers validate authorization, balance, configurable limits, idempotency, wallet locking and ledger consistency.
 
 ## Backend Docker image
 
