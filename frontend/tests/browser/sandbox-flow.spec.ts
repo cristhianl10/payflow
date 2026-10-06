@@ -125,3 +125,42 @@ test('a user can save a beneficiary and start a transfer from it', async ({
     'bob-beneficiary@example.com',
   );
 });
+
+
+test('a user can schedule and cancel a future transfer', async ({ browser }) => {
+  const alice = await browser.newPage();
+  const bob = await browser.newPage();
+
+  await register(alice, {
+    firstName: 'Alice',
+    lastName: 'Scheduler',
+    email: 'alice-scheduler@example.com',
+  });
+  await register(bob, {
+    firstName: 'Bob',
+    lastName: 'Scheduler',
+    email: 'bob-scheduler@example.com',
+  });
+
+  await alice
+    .getByRole('navigation', { name: 'Main navigation' })
+    .getByRole('link', { name: 'Scheduled' })
+    .click();
+
+  const future = new Date(Date.now() + 10 * 60_000);
+  const local = new Date(future.getTime() - future.getTimezoneOffset() * 60_000)
+    .toISOString()
+    .slice(0, 16);
+
+  await alice.getByLabel('Recipient email').fill('bob-scheduler@example.com');
+  await alice.getByLabel('Amount').fill('75.00');
+  await alice.getByLabel('Execute at').fill(local);
+  await alice.getByLabel('Reference').fill('E2E-SCHEDULED');
+  await alice.getByRole('button', { name: 'Schedule transfer' }).click();
+
+  await expect(alice.getByText('bob-scheduler@example.com')).toBeVisible();
+  await expect(alice.getByText(/SCHEDULED/)).toBeVisible();
+
+  await alice.getByRole('button', { name: 'Cancel' }).click();
+  await expect(alice.getByText(/CANCELLED/)).toBeVisible();
+});
