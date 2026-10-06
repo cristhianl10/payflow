@@ -113,7 +113,10 @@ export function BeneficiariesPage() {
               />
             </div>
           </div>
-          <button className="button button-primary" disabled={busy === 'create'}>
+          <button
+            className="button button-primary"
+            disabled={busy === 'create'}
+          >
             <Plus size={17} aria-hidden="true" />
             {busy === 'create' ? 'Adding…' : 'Add beneficiary'}
           </button>
