@@ -39,6 +39,7 @@ class CoreIT {
     @Autowired EmailVerificationService emailVerification;
     @Autowired PasswordRecoveryService passwordRecovery;
     @Autowired com.payflow.beneficiary.application.BeneficiaryService beneficiaries;
+    @Autowired com.payflow.notification.application.NotificationService notifications;
     @Autowired TransferService transfers;
     @Autowired com.payflow.transaction.application.TransactionQueries transactionQueries;
     @Autowired JdbcTemplate jdbc;
@@ -157,6 +158,34 @@ class CoreIT {
 
         beneficiaries.delete(alice.userId(), saved.publicId());
         assertTrue(beneficiaries.list(alice.userId()).isEmpty());
+    }
+
+    @Test void notificationEventsCreateInboxItemsAndSupportReadState() {
+        var alice = register("alice");
+        var bob = register("bob");
+
+        transfers.send(alice.userId(), UUID.randomUUID(), "bob@example.com",
+                "125.00", "USD", "Notification test", "NTF-001");
+
+        assertEquals(1, notifications.unreadCount(alice.userId()));
+        assertEquals(1, notifications.unreadCount(bob.userId()));
+
+        var aliceInbox = notifications.list(alice.userId(), 0, 20);
+        assertEquals(1, aliceInbox.totalElements());
+        assertEquals("TRANSFER_SENT", aliceInbox.content().getFirst().type());
+        assertTrue(aliceInbox.content().getFirst().actionUrl().startsWith("/app/transactions/"));
+
+        var bobInbox = notifications.list(bob.userId(), 0, 20);
+        assertEquals("TRANSFER_RECEIVED", bobInbox.content().getFirst().type());
+
+        notifications.markRead(alice.userId(), aliceInbox.content().getFirst().publicId());
+        assertEquals(0, notifications.unreadCount(alice.userId()));
+        notifications.markAllRead(bob.userId());
+        assertEquals(0, notifications.unreadCount(bob.userId()));
+
+        var ownership = assertThrows(BusinessException.class,
+                () -> notifications.markRead(alice.userId(), bobInbox.content().getFirst().publicId()));
+        assertEquals("NOTIFICATION_NOT_FOUND", ownership.code());
     }
 
     @Test void atomicTransferAndIdempotencyReturnIdenticalReceipt() throws Exception {
