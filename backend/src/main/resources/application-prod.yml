@@ -18,6 +18,9 @@ spring:
           starttls:
             enable: ${SMTP_STARTTLS:true}
 payflow:
+  transfer:
+    max-per-operation: ${TRANSFER_MAX_PER_OPERATION:7500.00}
+    daily-limit: ${TRANSFER_DAILY_LIMIT:15000.00}
   allowed-origins: ${FRONTEND_URL}
   auth:
     secret: ${JWT_SECRET}

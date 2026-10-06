@@ -31,6 +31,7 @@ export type Transaction = {
   sender: string;
   receiver: string;
   description: string;
+  reference?: string | null;
   createdAt: string;
 };
 export type TransactionPage = {
@@ -49,6 +50,12 @@ export type TransferInput = {
   amount: string;
   currency: 'USD';
   description: string;
+  reference: string;
+};
+export type TransferRules = {
+  maxPerOperation: string;
+  dailyLimit: string;
+  currency: 'USD';
 };
 
 export type Beneficiary = {

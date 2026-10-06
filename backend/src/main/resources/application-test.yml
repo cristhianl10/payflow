@@ -6,6 +6,9 @@ spring:
     hibernate:
       ddl-auto: validate
 payflow:
+  transfer:
+    max-per-operation: ${TRANSFER_MAX_PER_OPERATION:7500.00}
+    daily-limit: ${TRANSFER_DAILY_LIMIT:15000.00}
   allowed-origins: http://localhost:5173
   email:
     password-reset-token-seconds: ${PASSWORD_RESET_TOKEN_SECONDS:1800}

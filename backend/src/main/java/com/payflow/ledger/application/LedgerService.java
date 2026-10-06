@@ -20,26 +20,31 @@ public class LedgerService {
         UUID account = UUID.randomUUID();
         jdbc.update("INSERT INTO ledger_accounts(id, wallet_id, purpose) VALUES (?, ?, 'WALLET')", account, wallet.id());
         if (grant.amount().signum() > 0) {
-            post("SANDBOX_GRANT", null, wallet.id(), ISSUANCE, account, grant, "Your opening sandbox funds");
+            post("SANDBOX_GRANT", null, wallet.id(), ISSUANCE, account, grant,
+                    "Your opening sandbox funds", null);
             wallet.credit(grant);
         }
     }
 
-    public Operation postTransfer(WalletEntity sender, WalletEntity receiver, Money amount, String description) {
-        return post("TRANSFER", sender.id(), receiver.id(), account(sender.id()), account(receiver.id()), amount, description);
+    public Operation postTransfer(WalletEntity sender, WalletEntity receiver, Money amount, String description,
+            String reference) {
+        return post("TRANSFER", sender.id(), receiver.id(), account(sender.id()), account(receiver.id()), amount,
+                description, reference);
     }
 
     private UUID account(UUID wallet) {
         return jdbc.queryForObject("SELECT id FROM ledger_accounts WHERE wallet_id = ?", UUID.class, wallet);
     }
 
-    private Operation post(String kind, UUID sender, UUID receiver, UUID debit, UUID credit, Money money, String description) {
+    private Operation post(String kind, UUID sender, UUID receiver, UUID debit, UUID credit, Money money,
+            String description, String reference) {
         UUID id = UUID.randomUUID();
         String publicId = "PF-TX-" + UUID.randomUUID();
         jdbc.update("""
-                INSERT INTO journal_operations(id, public_id, kind, sender_wallet_id, receiver_wallet_id, amount, description)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-                """, id, publicId, kind, sender, receiver, money.amount(), description);
+                INSERT INTO journal_operations(id, public_id, kind, sender_wallet_id, receiver_wallet_id, amount,
+                        description, reference)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, id, publicId, kind, sender, receiver, money.amount(), description, reference);
         jdbc.update("""
                 INSERT INTO ledger_entries(id, operation_id, account_id, entry_type, amount)
                 VALUES (?, ?, ?, 'DEBIT', ?), (?, ?, ?, 'CREDIT', ?)

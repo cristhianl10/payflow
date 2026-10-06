@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { Link, useSearchParams } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft,
   ArrowRight,
@@ -16,7 +16,12 @@ import { api } from '../../services/api';
 import { Avatar, MoneyDisplay, Notice } from '../../components/ui';
 import { Receipt } from '../transactions/TransactionDetailPage';
 import { shouldPreserveTransferReference } from './transferRecovery';
-import type { Recipient, Transaction, TransferInput } from '../../types/api';
+import type {
+  Recipient,
+  Transaction,
+  TransferInput,
+  TransferRules,
+} from '../../types/api';
 
 type Review = {
   input: TransferInput;
@@ -45,6 +50,10 @@ const inputSchema = z.object({
     .string()
     .trim()
     .max(240, 'Keep the description within 240 characters.'),
+  reference: z
+    .string()
+    .trim()
+    .max(80, 'Keep the reference within 80 characters.'),
 });
 const savedSchema = z.object({
   input: inputSchema.extend({ currency: z.literal('USD') }),
@@ -82,6 +91,10 @@ export function SendPage() {
     () => !!savedReview(storageKey)?.attempted,
   );
   const wallet = useWallet();
+  const rules = useQuery({
+    queryKey: ['transfer-rules'],
+    queryFn: () => api<TransferRules>('/transfers/rules'),
+  });
   const queries = useQueryClient();
   const {
     register,
@@ -93,6 +106,7 @@ export function SendPage() {
       recipient: searchParams.get('recipient') ?? '',
       amount: '',
       description: '',
+      reference: '',
     },
   });
 
@@ -268,6 +282,22 @@ export function SendPage() {
                 </span>
               </div>
               <div className="field">
+                <label htmlFor="reference">
+                  Reference <span className="optional">Optional</span>
+                </label>
+                <input
+                  id="reference"
+                  maxLength={80}
+                  placeholder="Invoice, order or personal reference"
+                  {...register('reference')}
+                  aria-invalid={!!errors.reference}
+                  aria-describedby="reference-error"
+                />
+                <span id="reference-error" className="field-error">
+                  {errors.reference?.message}
+                </span>
+              </div>
+              <div className="field">
                 <label htmlFor="description">
                   What’s it for? <span className="optional">Optional</span>
                 </label>
@@ -318,6 +348,12 @@ export function SendPage() {
                   <dt>Transfer fee</dt>
                   <dd>$0.00 USD</dd>
                 </div>
+                {review.input.reference && (
+                  <div>
+                    <dt>Reference</dt>
+                    <dd>{review.input.reference}</dd>
+                  </div>
+                )}
                 {review.input.description && (
                   <div>
                     <dt>Description</dt>
@@ -381,6 +417,15 @@ export function SendPage() {
               Completed transfers cannot be edited or cancelled.
             </p>
           </div>
+          {rules.data && (
+            <div className="transfer-guidance">
+              <h3>Transfer limits</h3>
+              <p>
+                Up to ${rules.data.maxPerOperation} USD per transfer and $
+                {rules.data.dailyLimit} USD per day.
+              </p>
+            </div>
+          )}
           <p className="field-hint">
             The recipient must have an active PayFlow account. You cannot send
             funds to yourself.

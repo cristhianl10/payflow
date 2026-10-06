@@ -13,6 +13,7 @@ import com.payflow.transaction.application.TransactionQueries;
 import com.payflow.user.domain.UserStatus;
 import com.payflow.user.infrastructure.*;
 import com.payflow.wallet.infrastructure.*;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,11 +27,20 @@ public class TransferService {
     private final JdbcTemplate jdbc;
     private final ObjectMapper json;
     private final AuditLog audit;
+    private final BigDecimal maxPerOperation;
+    private final BigDecimal dailyLimit;
 
     public TransferService(WalletRepository wallets, UserRepository users, LedgerService ledger,
-            TransactionQueries transactions, JdbcTemplate jdbc, ObjectMapper json, AuditLog audit) {
+            TransactionQueries transactions, JdbcTemplate jdbc, ObjectMapper json, AuditLog audit,
+            @Value("${payflow.transfer.max-per-operation:7500.00}") BigDecimal maxPerOperation,
+            @Value("${payflow.transfer.daily-limit:15000.00}") BigDecimal dailyLimit) {
         this.wallets = wallets; this.users = users; this.ledger = ledger;
         this.transactions = transactions; this.jdbc = jdbc; this.json = json; this.audit = audit;
+        if (maxPerOperation.signum() <= 0 || dailyLimit.signum() <= 0 || dailyLimit.compareTo(maxPerOperation) < 0) {
+            throw new IllegalArgumentException("Transfer limits must be positive and daily limit must cover one operation");
+        }
+        this.maxPerOperation = maxPerOperation;
+        this.dailyLimit = dailyLimit;
     }
 
     @Transactional(readOnly = true)
@@ -43,6 +53,12 @@ public class TransferService {
 
     @Transactional(timeout = 15)
     public String send(UUID sender, UUID key, String recipient, String amount, String currency, String description) {
+        return send(sender, key, recipient, amount, currency, description, null);
+    }
+
+    @Transactional(timeout = 15)
+    public String send(UUID sender, UUID key, String recipient, String amount, String currency, String description,
+            String reference) {
         if (!"USD".equals(currency)) throw new BusinessException(400, "UNSUPPORTED_CURRENCY", "Transfers currently support USD only.");
         if (amount == null || !amount.matches("(?:0|[1-9][0-9]{0,14})(?:\\.[0-9]{1,2})?")
                 || new BigDecimal(amount).signum() <= 0) {
@@ -52,9 +68,18 @@ public class TransferService {
             throw new BusinessException(400, "INVALID_DESCRIPTION", "Use a description of at most 240 characters.");
         }
         Money money = new Money(new BigDecimal(amount), Currency.getInstance("USD"));
+        if (money.amount().compareTo(maxPerOperation) > 0) {
+            throw new BusinessException(422, "TRANSFER_LIMIT_EXCEEDED",
+                    "This transfer exceeds the per-operation limit of $" + maxPerOperation.setScale(2) + " USD.");
+        }
         String email = AuthService.normalizeEmail(recipient);
         String note = description == null ? "" : description.strip();
-        String hash = TokenService.hash(serialize(List.of(email, money.amount().toPlainString(), currency, note)));
+        String cleanReference = reference == null ? "" : reference.strip();
+        if (cleanReference.length() > 80) {
+            throw new BusinessException(400, "INVALID_REFERENCE", "Use a reference of at most 80 characters.");
+        }
+        String hash = TokenService.hash(serialize(
+                List.of(email, money.amount().toPlainString(), currency, note, cleanReference)));
         jdbc.update("DELETE FROM transfer_requests WHERE user_id = ? AND idempotency_key = ? AND expires_at <= CURRENT_TIMESTAMP",
                 sender, key);
         // ON CONFLICT waits for an in-flight identical key; rollback releases the reservation.
@@ -83,9 +108,23 @@ public class TransferService {
         WalletEntity to = first.id().equals(receiverWallet) ? first : second;
         Integer active = jdbc.queryForObject("SELECT count(*) FROM users WHERE id IN (?, ?) AND status = 'ACTIVE'", Integer.class, sender, receiver.id());
         if (active == null || active != 2) throw unavailable();
+
+        BigDecimal sentToday = jdbc.queryForObject("""
+                SELECT COALESCE(SUM(amount), 0)
+                FROM journal_operations
+                WHERE sender_wallet_id = ? AND kind = 'TRANSFER' AND status = 'COMPLETED'
+                  AND created_at >= date_trunc('day', CURRENT_TIMESTAMP)
+                """, BigDecimal.class, from.id());
+        if (sentToday == null) sentToday = BigDecimal.ZERO;
+        if (sentToday.add(money.amount()).compareTo(dailyLimit) > 0) {
+            throw new BusinessException(422, "DAILY_TRANSFER_LIMIT_EXCEEDED",
+                    "This transfer would exceed today's $" + dailyLimit.setScale(2) + " USD transfer limit.");
+        }
+
         from.debit(money);
         to.credit(money);
-        var operation = ledger.postTransfer(from, to, money, note);
+        var operation = ledger.postTransfer(from, to, money, note,
+                cleanReference.isEmpty() ? null : cleanReference);
         wallets.flush();
         String result = serialize(transactions.detail(sender, operation.publicId()));
         jdbc.update("""
@@ -112,5 +151,11 @@ public class TransferService {
         catch (JsonProcessingException exception) { throw new IllegalStateException(exception); }
     }
 
+    public TransferRules rules() {
+        return new TransferRules(maxPerOperation.setScale(2).toPlainString(), dailyLimit.setScale(2).toPlainString(),
+                "USD");
+    }
+
     public record Recipient(String displayName, String walletPublicId, String currency) {}
+    public record TransferRules(String maxPerOperation, String dailyLimit, String currency) {}
 }

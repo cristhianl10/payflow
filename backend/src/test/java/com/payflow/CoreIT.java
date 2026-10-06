@@ -190,11 +190,39 @@ class CoreIT {
 
     @Test void simultaneousOverspendingAllowsOnlyOneTransfer() throws Exception {
         var alice = register("alice"); register("bob");
-        var results = race(List.of(() -> send(alice, "bob", "8000", UUID.randomUUID()),
-                () -> send(alice, "bob", "7000", UUID.randomUUID())));
+        var results = race(List.of(() -> send(alice, "bob", "7000", UUID.randomUUID()),
+                () -> send(alice, "bob", "4000", UUID.randomUUID())));
         assertEquals(1, results.stream().filter(result -> result instanceof String).count());
         assertEquals(1, results.stream().filter(result -> result instanceof BusinessException e && e.code().equals("INSUFFICIENT_FUNDS")).count());
         assertEquals(3, count("journal_operations"));
+        assertReconciled();
+    }
+
+    @Test void transferRulesEnforceLimitsAndPersistReference() throws Exception {
+        var alice = register("alice");
+        var bob = register("bob");
+        var charlie = register("charlie");
+
+        var perOperation = assertThrows(BusinessException.class,
+                () -> transfers.send(alice.userId(), UUID.randomUUID(), "charlie@example.com",
+                        "7500.01", "USD", "Large transfer", "LIMIT-001"));
+        assertEquals("TRANSFER_LIMIT_EXCEEDED", perOperation.code());
+
+        assertDoesNotThrow(() -> transfers.send(bob.userId(), UUID.randomUUID(), "alice@example.com",
+                "5000", "USD", "Incoming funds", "IN-001"));
+
+        String first = transfers.send(alice.userId(), UUID.randomUUID(), "charlie@example.com",
+                "7500", "USD", "First transfer", "INV-2026-001");
+        assertEquals("COMPLETED", json.readTree(first).get("status").asText());
+        assertEquals("INV-2026-001", json.readTree(first).get("reference").asText());
+
+        assertDoesNotThrow(() -> transfers.send(alice.userId(), UUID.randomUUID(), "charlie@example.com",
+                "7500", "USD", "Second transfer", "INV-2026-002"));
+
+        var daily = assertThrows(BusinessException.class,
+                () -> transfers.send(alice.userId(), UUID.randomUUID(), "charlie@example.com",
+                        "0.01", "USD", "Daily limit", "INV-2026-003"));
+        assertEquals("DAILY_TRANSFER_LIMIT_EXCEEDED", daily.code());
         assertReconciled();
     }
 
