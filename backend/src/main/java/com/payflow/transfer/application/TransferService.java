@@ -51,6 +51,10 @@ public class TransferService {
         return new Recipient(user.firstName() + " " + user.lastName().substring(0, 1) + ".", wallet.publicId(), wallet.currency());
     }
 
+    public String send(UUID sender, UUID key, String recipient, String amount, String currency, String description) {
+        return send(sender, key, recipient, amount, currency, description, null);
+    }
+
     @Transactional(timeout = 15)
     public String send(UUID sender, UUID key, String recipient, String amount, String currency, String description,
             String reference) {
