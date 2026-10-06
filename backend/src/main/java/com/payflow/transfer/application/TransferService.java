@@ -32,8 +32,8 @@ public class TransferService {
 
     public TransferService(WalletRepository wallets, UserRepository users, LedgerService ledger,
             TransactionQueries transactions, JdbcTemplate jdbc, ObjectMapper json, AuditLog audit,
-            @Value("${payflow.transfer.max-per-operation:5000.00}") BigDecimal maxPerOperation,
-            @Value("${payflow.transfer.daily-limit:10000.00}") BigDecimal dailyLimit) {
+            @Value("${payflow.transfer.max-per-operation:7500.00}") BigDecimal maxPerOperation,
+            @Value("${payflow.transfer.daily-limit:15000.00}") BigDecimal dailyLimit) {
         this.wallets = wallets; this.users = users; this.ledger = ledger;
         this.transactions = transactions; this.jdbc = jdbc; this.json = json; this.audit = audit;
         if (maxPerOperation.signum() <= 0 || dailyLimit.signum() <= 0 || dailyLimit.compareTo(maxPerOperation) < 0) {
