@@ -20,15 +20,22 @@ public class TransferController {
         return transfers.recipient(UUID.fromString(jwt.getSubject()), email);
     }
 
+    @GetMapping("/rules")
+    TransferService.TransferRules rules() {
+        return transfers.rules();
+    }
+
     @PostMapping
     ResponseEntity<String> send(@AuthenticationPrincipal Jwt jwt, @RequestHeader("Idempotency-Key") UUID key,
             @Valid @RequestBody TransferRequest request) {
         return ResponseEntity.status(201).contentType(MediaType.APPLICATION_JSON).body(transfers.send(
-                UUID.fromString(jwt.getSubject()), key, request.recipient, request.amount, request.currency, request.description));
+                UUID.fromString(jwt.getSubject()), key, request.recipient, request.amount, request.currency,
+                request.description, request.reference));
     }
 
     public record TransferRequest(@NotBlank @Email @Size(max = 254) String recipient,
             @NotBlank @Pattern(regexp = "(?:0|[1-9][0-9]{0,14})(?:\\.[0-9]{1,2})?")
             @DecimalMin("0.01") @DecimalMax("999999999999999.99") String amount,
-            @NotBlank @Pattern(regexp = "USD") String currency, @Size(max = 240) String description) {}
+            @NotBlank @Pattern(regexp = "USD") String currency, @Size(max = 240) String description,
+            @Size(max = 80) String reference) {}
 }
