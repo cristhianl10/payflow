@@ -28,7 +28,7 @@ public class NotificationService {
         this.email = email;
     }
 
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void on(NotificationEvent event) {
         UUID id = UUID.randomUUID();
