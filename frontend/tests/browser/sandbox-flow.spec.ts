@@ -65,7 +65,6 @@ test('a registered user can send simulated funds and find the completed transfer
   await expect(bob.getByText('$125.00 USD')).toBeVisible();
 });
 
-
 test('a user can save a beneficiary and start a transfer from it', async ({
   browser,
 }) => {
