@@ -65,3 +65,19 @@ export type Beneficiary = {
   displayName: string;
   createdAt: string;
 };
+
+export type NotificationItem = {
+  publicId: string;
+  type: string;
+  title: string;
+  message: string;
+  actionUrl?: string | null;
+  readAt?: string | null;
+  createdAt: string;
+};
+export type NotificationPage = {
+  content: NotificationItem[];
+  page: number;
+  size: number;
+  totalElements: number;
+};
