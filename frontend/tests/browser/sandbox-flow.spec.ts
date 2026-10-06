@@ -73,7 +73,9 @@ test('a registered user can send simulated funds and find the completed transfer
     .getByRole('link', { name: 'Notifications' })
     .click();
   await expect(bob.getByText('Money received')).toBeVisible();
-  await expect(bob.getByText(/You received \$125.00 USD from Alice E\./)).toBeVisible();
+  await expect(
+    bob.getByText(/You received \$125.00 USD from Alice E\./),
+  ).toBeVisible();
   await bob.getByRole('button', { name: 'Mark all as read' }).click();
   await expect(bob.getByText('Unread')).toHaveCount(0);
 });
