@@ -14,7 +14,7 @@ The MVP is operational end to end:
 - Atomic, idempotent internal transfers between users.
 - Transfer references, persisted completion status and configurable per-operation/daily limits.
 - Double-entry ledger and transaction history.
-- Advanced transaction history with search, date/amount filters, sorting and pagination.
+- Advanced transaction history with combinable search, date/amount filters, sorting and pagination.
 - Filtered CSV transaction export.
 - Email verification with expiring single-use tokens.
 - Password recovery by email with expiring single-use reset tokens.
