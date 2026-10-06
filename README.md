@@ -15,6 +15,7 @@ The MVP is operational end to end:
 - Transfer references, persisted completion status and configurable per-operation/daily limits.
 - Double-entry ledger and transaction history.
 - Advanced transaction history with combinable search, date/amount filters, sorting and pagination.
+- In-app notifications and post-commit email alerts for transfers and security events.
 - Filtered CSV transaction export.
 - Email verification with expiring single-use tokens.
 - Password recovery by email with expiring single-use reset tokens.
