@@ -8,6 +8,8 @@ import java.util.Base64;
 import java.util.UUID;
 
 import com.payflow.audit.AuditLog;
+import com.payflow.notification.application.NotificationPublisher;
+import com.payflow.notification.domain.NotificationEvent;
 import com.payflow.shared.domain.BusinessException;
 import com.payflow.user.domain.UserStatus;
 import com.payflow.user.infrastructure.UserEntity;
@@ -28,12 +30,13 @@ public class PasswordRecoveryService {
     private final PasswordEncoder passwords;
     private final EmailDeliveryService email;
     private final AuditLog audit;
+    private final NotificationPublisher notifications;
     private final SecureRandom random = new SecureRandom();
     private final long tokenSeconds;
     private final String frontendUrl;
 
     public PasswordRecoveryService(UserRepository users, JdbcTemplate jdbc, PasswordEncoder passwords,
-            EmailDeliveryService email, AuditLog audit,
+            EmailDeliveryService email, AuditLog audit, NotificationPublisher notifications,
             @Value("${payflow.email.password-reset-token-seconds:1800}") long tokenSeconds,
             @Value("${payflow.email.frontend-url:http://localhost:5173}") String frontendUrl) {
         if (tokenSeconds < 300 || tokenSeconds > 86400) {
@@ -44,6 +47,7 @@ public class PasswordRecoveryService {
         this.passwords = passwords;
         this.email = email;
         this.audit = audit;
+        this.notifications = notifications;
         this.tokenSeconds = tokenSeconds;
         this.frontendUrl = frontendUrl.replaceAll("/+$", "");
     }
@@ -120,6 +124,11 @@ public class PasswordRecoveryService {
                 WHERE user_id = ?
                 """, reset.userId);
         audit.record("PASSWORD_RESET_COMPLETED", reset.userId, reset.userId);
+        notifications.publish(new NotificationEvent(
+                user.id(), user.email(), "SECURITY_PASSWORD_RESET", "Password reset completed",
+                "Your PayFlow password was reset and existing sessions were signed out.", "/login",
+                "Your PayFlow password was reset",
+                "Your PayFlow password was reset successfully. Existing sessions were signed out. If this was not you, contact support immediately."));
     }
 
     private void validatePassword(String password) {
