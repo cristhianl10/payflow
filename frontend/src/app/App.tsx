@@ -50,7 +50,10 @@ export function App() {
           <Route path="/app" element={<AppLayout />}>
             <Route index element={<DashboardPage />} />
             <Route path="send" element={<SendPage />} />
-            <Route path="scheduled-transfers" element={<ScheduledTransfersPage />} />
+            <Route
+              path="scheduled-transfers"
+              element={<ScheduledTransfersPage />}
+            />
             <Route path="transactions" element={<HistoryPage />} />
             <Route
               path="transactions/:publicId"
