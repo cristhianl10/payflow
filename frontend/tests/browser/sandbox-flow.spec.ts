@@ -126,8 +126,9 @@ test('a user can save a beneficiary and start a transfer from it', async ({
   );
 });
 
-
-test('a user can schedule and cancel a future transfer', async ({ browser }) => {
+test('a user can schedule and cancel a future transfer', async ({
+  browser,
+}) => {
   const alice = await browser.newPage();
   const bob = await browser.newPage();
 
