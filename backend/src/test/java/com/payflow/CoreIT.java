@@ -198,7 +198,7 @@ class CoreIT {
         assertReconciled();
     }
 
-    @Test void transferRulesEnforceLimitsAndPersistReference() {
+    @Test void transferRulesEnforceLimitsAndPersistReference() throws Exception {
         var alice = register("alice");
         var bob = register("bob");
         var charlie = register("charlie");
