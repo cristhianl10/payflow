@@ -12,6 +12,7 @@ import {
 import { AppLayout } from '../layouts/AppLayout';
 import { DashboardPage } from '../pages/DashboardPage';
 import { SendPage } from '../features/transfers/SendPage';
+import { ScheduledTransfersPage } from '../features/transfers/ScheduledTransfersPage';
 import { HistoryPage } from '../features/transactions/HistoryPage';
 import { TransactionDetailPage } from '../features/transactions/TransactionDetailPage';
 import { WalletPage } from '../features/wallet/WalletPage';
@@ -49,6 +50,10 @@ export function App() {
           <Route path="/app" element={<AppLayout />}>
             <Route index element={<DashboardPage />} />
             <Route path="send" element={<SendPage />} />
+            <Route
+              path="scheduled-transfers"
+              element={<ScheduledTransfersPage />}
+            />
             <Route path="transactions" element={<HistoryPage />} />
             <Route
               path="transactions/:publicId"

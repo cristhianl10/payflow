@@ -16,6 +16,7 @@ The MVP is operational end to end:
 - Double-entry ledger and transaction history.
 - Advanced transaction history with combinable search, date/amount filters, sorting and pagination.
 - In-app notifications and post-commit email alerts for transfers and security events.
+- Scheduled transfers with cancellation, automatic execution, failure tracking and idempotent recovery.
 - Filtered CSV transaction export.
 - Email verification with expiring single-use tokens.
 - Password recovery by email with expiring single-use reset tokens.
@@ -47,7 +48,7 @@ Deferred capabilities include:
 
 - Multifactor authentication.
 - Complete administrator surface.
-- Notifications and advanced antifraud controls.
+- Advanced antifraud controls.
 - Risk scoring and multi-currency support.
 
 ## Technologies
@@ -128,6 +129,7 @@ Production variables are supplied through the hosting platform:
 - `JWT_SECRET`
 - `TRANSFER_MAX_PER_OPERATION`
 - `TRANSFER_DAILY_LIMIT`
+- `PAYFLOW_SCHEDULED_TRANSFERS_POLL_MS`
 - `EMAIL_DELIVERY_MODE` (`log` or `smtp`)
 - `EMAIL_FROM`
 - `SMTP_HOST`
