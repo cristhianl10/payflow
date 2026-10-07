@@ -166,8 +166,9 @@ test('a user can schedule and cancel a future transfer', async ({
   await expect(alice.getByText('$75.00 USD · CANCELLED')).toBeVisible();
 });
 
-
-test('dashboard shows financial summary after a transfer', async ({ browser }) => {
+test('dashboard shows financial summary after a transfer', async ({
+  browser,
+}) => {
   const alice = await browser.newPage();
   const bob = await browser.newPage();
 
