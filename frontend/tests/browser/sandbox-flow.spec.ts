@@ -165,3 +165,40 @@ test('a user can schedule and cancel a future transfer', async ({
   await alice.getByRole('button', { name: 'Cancel' }).click();
   await expect(alice.getByText('$75.00 USD · CANCELLED')).toBeVisible();
 });
+
+
+test('dashboard shows financial summary after a transfer', async ({ browser }) => {
+  const alice = await browser.newPage();
+  const bob = await browser.newPage();
+
+  await register(alice, {
+    firstName: 'Alice',
+    lastName: 'Dashboard',
+    email: 'alice-dashboard@example.com',
+  });
+  await register(bob, {
+    firstName: 'Bob',
+    lastName: 'Dashboard',
+    email: 'bob-dashboard@example.com',
+  });
+
+  await alice
+    .getByRole('navigation', { name: 'Main navigation' })
+    .getByRole('link', { name: 'Send money' })
+    .click();
+
+  await alice.getByLabel('Recipient’s email').fill('bob-dashboard@example.com');
+  await alice.getByLabel('Amount').fill('125.00');
+  await alice.getByRole('button', { name: 'Continue' }).click();
+  await alice.getByRole('button', { name: 'Send $125.00' }).click();
+
+  await alice
+    .getByRole('navigation', { name: 'Main navigation' })
+    .getByRole('link', { name: 'Overview' })
+    .click();
+
+  await expect(alice.getByText('7-day movement')).toBeVisible();
+  await expect(alice.getByText('Top recipients')).toBeVisible();
+  await expect(alice.getByText('Bob Dashboard')).toBeVisible();
+  await expect(alice.getByText('125.00')).toBeVisible();
+});
