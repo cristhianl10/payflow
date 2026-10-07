@@ -125,7 +125,11 @@ export function DashboardPage() {
             <article>
               <span>Total sent</span>
               <strong>
-                {hidden ? '••••••' : <MoneyDisplay amount={summary.data.totalSent} />}
+                {hidden ? (
+                  '••••••'
+                ) : (
+                  <MoneyDisplay amount={summary.data.totalSent} />
+                )}
               </strong>
             </article>
             <article>
@@ -161,7 +165,10 @@ export function DashboardPage() {
                 </span>
               </div>
 
-              <div className="dashboard-chart" aria-label="Seven day movement chart">
+              <div
+                className="dashboard-chart"
+                aria-label="Seven day movement chart"
+              >
                 {summary.data.trend.map((point) => (
                   <div className="chart-day" key={point.day}>
                     <div className="chart-bars">
