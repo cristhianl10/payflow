@@ -190,8 +190,8 @@ test('dashboard shows financial summary after a transfer', async ({
 
   await alice.getByLabel('Recipient’s email').fill('bob-dashboard@example.com');
   await alice.getByLabel('Amount').fill('125.00');
-  await alice.getByRole('button', { name: 'Continue' }).click();
-  await alice.getByRole('button', { name: 'Send $125.00' }).click();
+  await alice.getByRole('button', { name: 'Review transfer' }).click();
+  await alice.getByRole('button', { name: 'Confirm and send' }).click();
 
   await alice
     .getByRole('navigation', { name: 'Main navigation' })
