@@ -96,3 +96,35 @@ export type ScheduledTransfer = {
   operationPublicId?: string | null;
   createdAt: string;
 };
+
+export type DashboardTrendPoint = {
+  day: string;
+  sent: string;
+  received: string;
+};
+export type DashboardTopRecipient = {
+  displayName: string;
+  email: string;
+  transfers: number;
+  total: string;
+};
+export type DashboardUpcomingTransfer = {
+  publicId: string;
+  recipientEmail: string;
+  amount: string;
+  executeAt: string;
+  status: string;
+};
+export type DashboardSummary = {
+  totalSent: string;
+  totalReceived: string;
+  transferCount: number;
+  trend: DashboardTrendPoint[];
+  topRecipients: DashboardTopRecipient[];
+  upcomingTransfers: DashboardUpcomingTransfer[];
+  scheduledStatus: {
+    completed: number;
+    failed: number;
+    scheduled: number;
+  };
+};
