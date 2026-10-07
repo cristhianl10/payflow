@@ -53,7 +53,8 @@ public class SecurityConfiguration {
                         .requestMatchers("/api/v1/users/me/**", "/api/v1/wallets/**", "/api/v1/transfers/**",
                                 "/api/v1/transactions/**", "/api/v1/beneficiaries/**",
                                 "/api/v1/notifications", "/api/v1/notifications/**",
-                                "/api/v1/scheduled-transfers", "/api/v1/scheduled-transfers/**").hasRole("USER")
+                                "/api/v1/scheduled-transfers", "/api/v1/scheduled-transfers/**",
+                                "/api/v1/dashboard", "/api/v1/dashboard/**").hasRole("USER")
                         .anyRequest().denyAll())
                 .oauth2ResourceServer(resource -> resource.jwt(jwt -> jwt.jwtAuthenticationConverter(tokens::authenticate))
                         .authenticationEntryPoint(unauthenticated))
