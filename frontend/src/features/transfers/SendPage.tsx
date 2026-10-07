@@ -176,6 +176,7 @@ export function SendPage() {
       await Promise.all([
         queries.invalidateQueries({ queryKey: ['wallet'] }),
         queries.invalidateQueries({ queryKey: ['transactions'] }),
+        queries.invalidateQueries({ queryKey: ['dashboard-summary'] }),
       ]);
     } catch (failure) {
       // A response can be lost after PayFlow commits the transfer. Preserve the
