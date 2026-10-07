@@ -44,6 +44,7 @@ class CoreIT {
     @Autowired com.payflow.transaction.application.TransactionQueries transactionQueries;
     @Autowired com.payflow.scheduled.application.ScheduledTransferService scheduledTransfers;
     @Autowired com.payflow.scheduled.application.ScheduledTransferProcessor scheduledProcessor;
+    @Autowired com.payflow.dashboard.application.DashboardQueries dashboard;
     @Autowired JdbcTemplate jdbc;
     @Autowired ObjectMapper json;
     @Autowired PlatformTransactionManager manager;
@@ -241,6 +242,31 @@ class CoreIT {
         assertEquals("FAILED", failed.status());
         assertNotNull(failed.failureCode());
         assertNull(failed.operationPublicId());
+    }
+
+    @Test void financialDashboardAggregatesTransfersTrendRecipientsAndScheduled() {
+        var alice = register("alice");
+        register("bob");
+        register("charlie");
+
+        transfers.send(alice.userId(), UUID.randomUUID(), "bob@example.com",
+                "125.00", "USD", "Dashboard one", "DASH-001");
+        transfers.send(alice.userId(), UUID.randomUUID(), "charlie@example.com",
+                "300.00", "USD", "Dashboard two", "DASH-002");
+        scheduledTransfers.create(
+                alice.userId(), "bob@example.com", "75.00", "USD",
+                "Upcoming", "DASH-SCH", java.time.Instant.now().plusSeconds(120));
+
+        var summary = dashboard.summary(alice.userId());
+
+        assertEquals("425.00", summary.totalSent());
+        assertEquals("0.00", summary.totalReceived());
+        assertEquals(2, summary.transferCount());
+        assertEquals(7, summary.trend().size());
+        assertEquals(2, summary.topRecipients().size());
+        assertEquals("charlie@example.com", summary.topRecipients().getFirst().email());
+        assertEquals(1, summary.upcomingTransfers().size());
+        assertEquals(1, summary.scheduledStatus().scheduled());
     }
 
     @Test void atomicTransferAndIdempotencyReturnIdenticalReceipt() throws Exception {
