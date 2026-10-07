@@ -201,5 +201,5 @@ test('dashboard shows financial summary after a transfer', async ({
   await expect(alice.getByText('7-day movement')).toBeVisible();
   await expect(alice.getByText('Top recipients')).toBeVisible();
   await expect(alice.getByText('Bob Dashboard')).toBeVisible();
-  await expect(alice.getByText('125.00')).toBeVisible();
+  await expect(alice.getByText('$125.00 USD').first()).toBeVisible();
 });
