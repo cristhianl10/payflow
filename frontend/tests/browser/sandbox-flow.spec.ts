@@ -203,3 +203,32 @@ test('dashboard shows financial summary after a transfer', async ({
   await expect(alice.getByText('Bob Dashboard')).toBeVisible();
   await expect(alice.getByText('$125.00 USD').first()).toBeVisible();
 });
+
+
+test('a user can download a PDF account statement', async ({ browser }) => {
+  const alice = await browser.newPage();
+
+  await register(alice, {
+    firstName: 'Alice',
+    lastName: 'Reports',
+    email: 'alice-reports@example.com',
+  });
+
+  await alice
+    .getByRole('navigation', { name: 'Main navigation' })
+    .getByRole('link', { name: 'Reports' })
+    .click();
+
+  await expect(
+    alice.getByRole('heading', { name: 'Statements & reports.' }),
+  ).toBeVisible();
+
+  const [download] = await Promise.all([
+    alice.waitForEvent('download'),
+    alice.getByRole('button', { name: 'Download PDF statement' }).click(),
+  ]);
+
+  expect(download.suggestedFilename()).toMatch(
+    /^payflow-statement-.*-to-.*\.pdf$/,
+  );
+});
