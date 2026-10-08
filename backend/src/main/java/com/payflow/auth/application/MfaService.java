@@ -258,7 +258,7 @@ public class MfaService {
     }
 
     private String recoveryCode() {
-        byte[] bytes = new byte[5];
+        byte[] bytes = new byte[6];
         random.nextBytes(bytes);
         String raw = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes).toUpperCase(Locale.ROOT);
         return raw.substring(0, 4) + "-" + raw.substring(4, 8);
