@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowRight, Check, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
-import { authenticate } from '../../services/api';
+import { authenticate, completeMfa } from '../../services/api';
 import { useSession } from '../../hooks/useSession';
 import { Logo, Notice } from '../../components/ui';
 
@@ -23,6 +23,8 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
   const queries = useQueryClient();
   const [error, setError] = useState<unknown>();
   const [visible, setVisible] = useState(false);
+  const [mfaChallenge, setMfaChallenge] = useState<string>();
+  const [mfaCode, setMfaCode] = useState('');
   const {
     register,
     handleSubmit,
@@ -32,6 +34,17 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
   if (session) return <Navigate to="/app" replace />;
   const onSubmit = handleSubmit(async (values) => {
     setError(undefined);
+    if (mfaChallenge) {
+      try {
+        await completeMfa(mfaChallenge, mfaCode.trim());
+        queries.clear();
+        const from = (location.state as { from?: string } | null)?.from;
+        navigate(from?.startsWith('/app') ? from : '/app', { replace: true });
+      } catch (failure) {
+        setError(failure);
+      }
+      return;
+    }
     const schema = z.object({
       email: z.string().trim().email('Enter a valid email address.').max(254),
       password: z
@@ -71,7 +84,7 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
       return;
     }
     try {
-      await authenticate(mode, {
+      const result = await authenticate(mode, {
         email: parsed.data.email,
         password: parsed.data.password,
         ...(registration
@@ -81,6 +94,10 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
             }
           : {}),
       });
+      if ('mfaRequired' in result) {
+        setMfaChallenge(result.challengeId);
+        return;
+      }
       queries.clear();
       const from = (location.state as { from?: string } | null)?.from;
       navigate(from?.startsWith('/app') ? from : '/app', { replace: true });
@@ -161,60 +178,86 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
           </p>
           <form onSubmit={onSubmit} noValidate>
             <Notice error={error} />
-            {registration && (
-              <div className="form-row">
-                {field('firstName', 'First name', 'given-name')}
-                {field('lastName', 'Last name', 'family-name')}
-              </div>
-            )}
-            {field('email', 'Email address', 'email')}
-            <div className="field">
-              <label htmlFor="password">Password</label>
-              <div className="password-field">
+            {mfaChallenge ? (
+              <div className="field">
+                <label htmlFor="mfa-code">Authenticator or recovery code</label>
                 <input
-                  id="password"
-                  type={visible ? 'text' : 'password'}
-                  autoComplete={
-                    registration ? 'new-password' : 'current-password'
-                  }
-                  {...register('password')}
-                  aria-invalid={!!errors.password}
-                  aria-describedby="password-help password-error"
+                  id="mfa-code"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={32}
+                  value={mfaCode}
+                  onChange={(event) => setMfaCode(event.target.value)}
+                  required
+                  autoFocus
                 />
-                <button
-                  type="button"
-                  className="icon-button"
-                  onClick={() => setVisible(!visible)}
-                  aria-label={visible ? 'Hide password' : 'Show password'}
-                >
-                  {visible ? <EyeOff size={19} /> : <Eye size={19} />}
-                </button>
+                <span className="field-hint">
+                  Enter the 6-digit code from your authenticator app or one of
+                  your recovery codes.
+                </span>
               </div>
-              <span id="password-help" className="field-hint">
-                {registration
-                  ? 'Use at least 10 characters. A passphrase works well.'
-                  : 'Use the password you created for PayFlow.'}
-              </span>
-              <span id="password-error" className="field-error">
-                {errors.password?.message}
-              </span>
-              {!registration && (
-                <Link className="field-hint" to="/forgot-password">
-                  Forgot your password?
-                </Link>
-              )}
-            </div>
+            ) : (
+              <>
+                {registration && (
+                  <div className="form-row">
+                    {field('firstName', 'First name', 'given-name')}
+                    {field('lastName', 'Last name', 'family-name')}
+                  </div>
+                )}
+                {field('email', 'Email address', 'email')}
+                <div className="field">
+                  <label htmlFor="password">Password</label>
+                  <div className="password-field">
+                    <input
+                      id="password"
+                      type={visible ? 'text' : 'password'}
+                      autoComplete={
+                        registration ? 'new-password' : 'current-password'
+                      }
+                      {...register('password')}
+                      aria-invalid={!!errors.password}
+                      aria-describedby="password-help password-error"
+                    />
+                    <button
+                      type="button"
+                      className="icon-button"
+                      onClick={() => setVisible(!visible)}
+                      aria-label={visible ? 'Hide password' : 'Show password'}
+                    >
+                      {visible ? <EyeOff size={19} /> : <Eye size={19} />}
+                    </button>
+                  </div>
+                  <span id="password-help" className="field-hint">
+                    {registration
+                      ? 'Use at least 10 characters. A passphrase works well.'
+                      : 'Use the password you created for PayFlow.'}
+                  </span>
+                  <span id="password-error" className="field-error">
+                    {errors.password?.message}
+                  </span>
+                  {!registration && (
+                    <Link className="field-hint" to="/forgot-password">
+                      Forgot your password?
+                    </Link>
+                  )}
+                </div>
+              </>
+            )}
             <button
               className="button button-primary button-full"
-              disabled={isSubmitting}
+              disabled={isSubmitting || (!!mfaChallenge && !mfaCode.trim())}
             >
               {isSubmitting
-                ? registration
-                  ? 'Creating your wallet…'
-                  : 'Signing in…'
-                : registration
-                  ? 'Create your account'
-                  : 'Sign in'}
+                ? mfaChallenge
+                  ? 'Verifying…'
+                  : registration
+                    ? 'Creating your wallet…'
+                    : 'Signing in…'
+                : mfaChallenge
+                  ? 'Verify and sign in'
+                  : registration
+                    ? 'Create your account'
+                    : 'Sign in'}
               <ArrowRight size={18} aria-hidden="true" />
             </button>
           </form>

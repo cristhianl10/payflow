@@ -19,6 +19,7 @@ The MVP is operational end to end:
 - Scheduled transfers with cancellation, automatic execution, failure tracking and idempotent recovery.
 - Financial dashboard with seven-day trends, top recipients and scheduled-transfer health.
 - Downloadable PDF account statements with period balances, totals and movements.
+- Authenticator-based MFA with encrypted TOTP secrets and one-time recovery codes.
 - Filtered CSV transaction export.
 - Email verification with expiring single-use tokens.
 - Password recovery by email with expiring single-use reset tokens.

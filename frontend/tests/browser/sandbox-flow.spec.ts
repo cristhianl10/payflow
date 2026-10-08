@@ -231,3 +231,24 @@ test('a user can download a PDF account statement', async ({ browser }) => {
     /^payflow-statement-.*-to-.*\.pdf$/,
   );
 });
+
+test('a user can start authenticator MFA setup', async ({ browser }) => {
+  const alice = await browser.newPage();
+
+  await register(alice, {
+    firstName: 'Alice',
+    lastName: 'Mfa',
+    email: 'alice-mfa@example.com',
+  });
+
+  await alice
+    .getByRole('navigation', { name: 'Main navigation' })
+    .getByRole('link', { name: 'Account' })
+    .click();
+
+  await alice.getByRole('button', { name: 'Set up authenticator' }).click();
+  await expect(
+    alice.getByRole('img', { name: 'PayFlow authenticator QR code' }),
+  ).toBeVisible();
+  await expect(alice.getByLabel('6-digit code')).toBeVisible();
+});

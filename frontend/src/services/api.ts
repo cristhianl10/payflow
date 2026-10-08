@@ -1,4 +1,4 @@
-import type { Session } from '../types/api';
+import type { MfaChallenge, Session } from '../types/api';
 
 export class ApiError extends Error {
   constructor(
@@ -141,10 +141,19 @@ export async function bootstrapSession() {
 export async function authenticate(
   kind: 'login' | 'register',
   data: Record<string, string>,
-) {
-  const value = await request<Session>(`/auth/${kind}`, {
+): Promise<Session | MfaChallenge> {
+  const value = await request<Session | MfaChallenge>(`/auth/${kind}`, {
     method: 'POST',
     body: JSON.stringify(data),
+  });
+  if ('accessToken' in value) setSession(value);
+  return value;
+}
+
+export async function completeMfa(challengeId: string, code: string) {
+  const value = await request<Session>('/auth/mfa', {
+    method: 'POST',
+    body: JSON.stringify({ challengeId, code }),
   });
   setSession(value);
   return value;

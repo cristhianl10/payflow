@@ -48,7 +48,8 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.GET, "/api/v1/auth/csrf").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/register", "/api/v1/auth/login",
                                 "/api/v1/auth/refresh", "/api/v1/auth/logout", "/api/v1/auth/verify-email",
-                                "/api/v1/auth/forgot-password", "/api/v1/auth/reset-password").permitAll()
+                                "/api/v1/auth/forgot-password", "/api/v1/auth/reset-password",
+                                "/api/v1/auth/mfa").permitAll()
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/v1/users/me/**", "/api/v1/wallets/**", "/api/v1/transfers/**",
                                 "/api/v1/transactions/**", "/api/v1/beneficiaries/**",
