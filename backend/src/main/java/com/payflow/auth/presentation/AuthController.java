@@ -22,13 +22,14 @@ public class AuthController {
     private final TokenService tokens;
     private final EmailVerificationService emailVerification;
     private final PasswordRecoveryService passwordRecovery;
+    private final MfaService mfa;
     private final boolean secure;
 
     public AuthController(AuthService auth, TokenService tokens, EmailVerificationService emailVerification,
-            PasswordRecoveryService passwordRecovery,
+            PasswordRecoveryService passwordRecovery, MfaService mfa,
             @Value("$" + "{payflow.auth.secure-cookie:false}") boolean secure) {
         this.auth = auth; this.tokens = tokens; this.emailVerification = emailVerification;
-        this.passwordRecovery = passwordRecovery; this.secure = secure;
+        this.passwordRecovery = passwordRecovery; this.mfa = mfa; this.secure = secure;
     }
 
     @GetMapping("/auth/csrf")
@@ -64,8 +65,38 @@ public class AuthController {
     }
 
     @PostMapping("/auth/login")
-    ResponseEntity<AuthView> login(@Valid @RequestBody LoginRequest request) {
-        return response(auth.login(request.email, request.password), 200);
+    ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
+        AuthService.LoginAttempt attempt = auth.beginLogin(request.email, request.password);
+        if (attempt.mfaRequired()) {
+            return ResponseEntity.status(202).body(new MfaChallengeView(true, attempt.challengeId()));
+        }
+        return response(attempt.tokens(), 200);
+    }
+
+    @PostMapping("/auth/mfa")
+    ResponseEntity<AuthView> completeMfa(@Valid @RequestBody MfaLoginRequest request) {
+        return response(auth.completeMfa(request.challengeId, request.code), 200);
+    }
+
+    @GetMapping("/users/me/mfa")
+    MfaService.Status mfaStatus(@AuthenticationPrincipal Jwt jwt) {
+        return mfa.status(UUID.fromString(jwt.getSubject()));
+    }
+
+    @PostMapping("/users/me/mfa/setup")
+    MfaService.Setup beginMfa(@AuthenticationPrincipal Jwt jwt) {
+        return mfa.begin(UUID.fromString(jwt.getSubject()));
+    }
+
+    @PostMapping("/users/me/mfa/confirm")
+    MfaService.Enabled confirmMfa(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody MfaCodeRequest request) {
+        return mfa.confirm(UUID.fromString(jwt.getSubject()), request.code);
+    }
+
+    @DeleteMapping("/users/me/mfa")
+    ResponseEntity<Void> disableMfa(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody DisableMfaRequest request) {
+        mfa.disable(UUID.fromString(jwt.getSubject()), request.currentPassword, request.code);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/auth/refresh")
@@ -134,10 +165,15 @@ public class AuthController {
             @NotBlank @Size(min = 10, max = 72) String newPassword) {}
     public record LoginRequest(@NotBlank @Email @Size(max = 254) String email,
             @NotBlank @Size(max = 72) String password) {}
+    public record MfaLoginRequest(@NotNull UUID challengeId, @NotBlank @Size(max = 32) String code) {}
+    public record MfaCodeRequest(@NotBlank @Pattern(regexp = "\\d{6}") String code) {}
+    public record DisableMfaRequest(@NotBlank @Size(max = 72) String currentPassword,
+            @NotBlank @Size(max = 32) String code) {}
     public record ProfileRequest(@NotBlank @Size(max = 100) String firstName,
             @NotBlank @Size(max = 100) String lastName) {}
     public record ChangePasswordRequest(@NotBlank @Size(max = 72) String currentPassword,
             @NotBlank @Size(min = 10, max = 72) String newPassword) {}
     public record AuthView(String accessToken, Instant expiresAt, AuthService.UserView user) {}
+    public record MfaChallengeView(boolean mfaRequired, UUID challengeId) {}
     public record CsrfView(String headerName, String token) {}
 }
