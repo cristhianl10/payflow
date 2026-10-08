@@ -232,7 +232,6 @@ test('a user can download a PDF account statement', async ({ browser }) => {
   );
 });
 
-
 test('a user can start authenticator MFA setup', async ({ browser }) => {
   const alice = await browser.newPage();
 
