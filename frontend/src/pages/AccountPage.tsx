@@ -8,7 +8,7 @@ import {
   resendEmailVerification,
   updateSessionUser,
 } from '../services/api';
-import type { ActiveSession } from '../types/api';
+import type { ActiveSession, MfaEnabled, MfaSetup, MfaStatus } from '../types/api';
 
 export function AccountPage() {
   const session = useSession();
@@ -23,9 +23,18 @@ export function AccountPage() {
   const [savingPassword, setSavingPassword] = useState(false);
   const [revoking, setRevoking] = useState<string>();
   const [resendingVerification, setResendingVerification] = useState(false);
+  const [mfaSetup, setMfaSetup] = useState<MfaSetup>();
+  const [mfaCode, setMfaCode] = useState('');
+  const [mfaPassword, setMfaPassword] = useState('');
+  const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
+  const [mfaBusy, setMfaBusy] = useState(false);
   const sessions = useQuery({
     queryKey: ['sessions', session?.user.publicId],
     queryFn: () => api<ActiveSession[]>('/users/me/sessions'),
+  });
+  const mfa = useQuery({
+    queryKey: ['mfa-status', session?.user.publicId],
+    queryFn: () => api<MfaStatus>('/users/me/mfa'),
   });
   if (!session) return null;
   const { user } = session;
@@ -84,6 +93,64 @@ export function AccountPage() {
       setError(failure);
     } finally {
       setResendingVerification(false);
+    }
+  }
+
+  async function beginMfa() {
+    setError(undefined);
+    setNotice(undefined);
+    setMfaBusy(true);
+    try {
+      setMfaSetup(await api<MfaSetup>('/users/me/mfa/setup', { method: 'POST' }));
+      setRecoveryCodes([]);
+      setMfaCode('');
+    } catch (failure) {
+      setError(failure);
+    } finally {
+      setMfaBusy(false);
+    }
+  }
+
+  async function confirmMfa() {
+    setError(undefined);
+    setMfaBusy(true);
+    try {
+      const enabled = await api<MfaEnabled>('/users/me/mfa/confirm', {
+        method: 'POST',
+        body: JSON.stringify({ code: mfaCode.trim() }),
+      });
+      setRecoveryCodes(enabled.recoveryCodes);
+      setMfaSetup(undefined);
+      setMfaCode('');
+      await queries.invalidateQueries({ queryKey: ['mfa-status'] });
+      setNotice('Two-factor authentication is now enabled.');
+    } catch (failure) {
+      setError(failure);
+    } finally {
+      setMfaBusy(false);
+    }
+  }
+
+  async function disableMfa() {
+    setError(undefined);
+    setMfaBusy(true);
+    try {
+      await api('/users/me/mfa', {
+        method: 'DELETE',
+        body: JSON.stringify({
+          currentPassword: mfaPassword,
+          code: mfaCode.trim(),
+        }),
+      });
+      setMfaPassword('');
+      setMfaCode('');
+      setRecoveryCodes([]);
+      await queries.invalidateQueries({ queryKey: ['mfa-status'] });
+      setNotice('Two-factor authentication was disabled.');
+    } catch (failure) {
+      setError(failure);
+    } finally {
+      setMfaBusy(false);
     }
   }
 
@@ -225,6 +292,101 @@ export function AccountPage() {
             </button>
           </form>
         </div>
+        <section className="account-form sessions-section">
+          <h2>Two-factor authentication</h2>
+          <p>Add an authenticator app as a second sign-in step.</p>
+          <Notice error={mfa.error} />
+          {mfa.data?.enabled ? (
+            <>
+              <div className="notice notice-success">
+                <ShieldCheck size={21} aria-hidden="true" />
+                <span>Two-factor authentication is enabled.</span>
+              </div>
+              <div className="field">
+                <label htmlFor="mfa-disable-password">Current password</label>
+                <input
+                  id="mfa-disable-password"
+                  type="password"
+                  autoComplete="current-password"
+                  value={mfaPassword}
+                  onChange={(event) => setMfaPassword(event.target.value)}
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="mfa-disable-code">
+                  Authenticator or recovery code
+                </label>
+                <input
+                  id="mfa-disable-code"
+                  maxLength={32}
+                  autoComplete="one-time-code"
+                  value={mfaCode}
+                  onChange={(event) => setMfaCode(event.target.value)}
+                />
+              </div>
+              <button
+                className="button button-secondary"
+                type="button"
+                disabled={mfaBusy || !mfaPassword || !mfaCode}
+                onClick={() => void disableMfa()}
+              >
+                Disable two-factor authentication
+              </button>
+            </>
+          ) : mfaSetup ? (
+            <>
+              <img
+                src={mfaSetup.qrDataUrl}
+                alt="PayFlow authenticator QR code"
+                width="220"
+                height="220"
+              />
+              <p className="field-hint">
+                Scan this QR code, or enter this secret manually:
+                <br />
+                <strong>{mfaSetup.secret}</strong>
+              </p>
+              <div className="field">
+                <label htmlFor="mfa-confirm-code">6-digit code</label>
+                <input
+                  id="mfa-confirm-code"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={6}
+                  value={mfaCode}
+                  onChange={(event) => setMfaCode(event.target.value)}
+                />
+              </div>
+              <button
+                className="button button-primary"
+                type="button"
+                disabled={mfaBusy || mfaCode.length !== 6}
+                onClick={() => void confirmMfa()}
+              >
+                Confirm and enable
+              </button>
+            </>
+          ) : (
+            <button
+              className="button button-secondary"
+              type="button"
+              disabled={mfaBusy}
+              onClick={() => void beginMfa()}
+            >
+              Set up authenticator
+            </button>
+          )}
+          {!!recoveryCodes.length && (
+            <div className="notice notice-info">
+              <div>
+                <strong>Save these recovery codes now.</strong>
+                <p>Each code works once if you lose your authenticator.</p>
+                <code>{recoveryCodes.join('  ')}</code>
+              </div>
+            </div>
+          )}
+        </section>
+
         <section className="account-form sessions-section">
           <h2>Active sessions</h2>
           <p>Revoke access from a device you no longer use.</p>
