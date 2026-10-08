@@ -204,7 +204,6 @@ test('dashboard shows financial summary after a transfer', async ({
   await expect(alice.getByText('$125.00 USD').first()).toBeVisible();
 });
 
-
 test('a user can download a PDF account statement', async ({ browser }) => {
   const alice = await browser.newPage();
 
