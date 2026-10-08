@@ -46,6 +46,7 @@ class CoreIT {
     @Autowired com.payflow.scheduled.application.ScheduledTransferProcessor scheduledProcessor;
     @Autowired com.payflow.dashboard.application.DashboardQueries dashboard;
     @Autowired com.payflow.report.application.StatementReportService reports;
+    @Autowired MfaService mfa;
     @Autowired JdbcTemplate jdbc;
     @Autowired ObjectMapper json;
     @Autowired PlatformTransactionManager manager;
@@ -294,6 +295,33 @@ class CoreIT {
         assertEquals("INVALID_REPORT_RANGE", invalid.code());
     }
 
+    @Test void mfaRequiresSecondFactorAndRecoveryCodesAreSingleUse() throws Exception {
+        var alice = register("alice");
+        var setup = mfa.begin(alice.userId());
+        String code = currentTotp(setup.secret());
+        var enabled = mfa.confirm(alice.userId(), code);
+        assertTrue(mfa.status(alice.userId()).enabled());
+        assertEquals(8, enabled.recoveryCodes().size());
+
+        var attempt = auth.beginLogin("alice@example.com", "strong-password-2026");
+        assertTrue(attempt.mfaRequired());
+        assertNull(attempt.tokens());
+        assertNotNull(auth.completeMfa(attempt.challengeId(), currentTotp(setup.secret())).accessToken());
+
+        String recovery = enabled.recoveryCodes().getFirst();
+        var recoveryAttempt = auth.beginLogin("alice@example.com", "strong-password-2026");
+        assertNotNull(auth.completeMfa(recoveryAttempt.challengeId(), recovery).accessToken());
+
+        var replayAttempt = auth.beginLogin("alice@example.com", "strong-password-2026");
+        var replay = assertThrows(BusinessException.class,
+                () -> auth.completeMfa(replayAttempt.challengeId(), recovery));
+        assertEquals("INVALID_MFA_CODE", replay.code());
+
+        mfa.disable(alice.userId(), "strong-password-2026", currentTotp(setup.secret()));
+        assertFalse(mfa.status(alice.userId()).enabled());
+        assertFalse(auth.beginLogin("alice@example.com", "strong-password-2026").mfaRequired());
+    }
+
     @Test void atomicTransferAndIdempotencyReturnIdenticalReceipt() throws Exception {
         var alice = register("alice"); register("bob");
         UUID key = UUID.randomUUID();
@@ -518,6 +546,21 @@ class CoreIT {
         assertEquals(204, browser.request("POST", "/auth/logout", null, null, null).statusCode());
         assertEquals(401, browser.request("GET", "/wallets/me", null, access, null).statusCode());
         assertReconciled();
+    }
+
+    private String currentTotp(String base32) throws Exception {
+        byte[] secret = new org.apache.commons.codec.binary.Base32().decode(base32);
+        long counter = java.time.Instant.now().getEpochSecond() / 30;
+        byte[] data = java.nio.ByteBuffer.allocate(8).putLong(counter).array();
+        javax.crypto.Mac mac = javax.crypto.Mac.getInstance("HmacSHA1");
+        mac.init(new javax.crypto.spec.SecretKeySpec(secret, "HmacSHA1"));
+        byte[] hash = mac.doFinal(data);
+        int offset = hash[hash.length - 1] & 0x0f;
+        int binary = ((hash[offset] & 0x7f) << 24)
+                | ((hash[offset + 1] & 0xff) << 16)
+                | ((hash[offset + 2] & 0xff) << 8)
+                | (hash[offset + 3] & 0xff);
+        return String.format(java.util.Locale.ROOT, "%06d", binary % 1_000_000);
     }
 
     private TokenService.Tokens register(String name) { return auth.register(name, "Example", name + "@example.com", "strong-password-2026"); }
