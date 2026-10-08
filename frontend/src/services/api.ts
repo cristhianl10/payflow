@@ -228,7 +228,6 @@ export async function downloadFile(path: string): Promise<Blob> {
   }
 }
 
-
 export async function downloadCsv(path: string): Promise<Blob> {
   return downloadFile(path);
 }
