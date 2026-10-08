@@ -213,7 +213,7 @@ async function downloadResponse(path: string, access: string): Promise<Blob> {
   return result.blob();
 }
 
-export async function downloadCsv(path: string): Promise<Blob> {
+export async function downloadFile(path: string): Promise<Blob> {
   let current = session;
   if (!current || Date.parse(current.expiresAt) - Date.now() < 30_000)
     current = await refreshSession();
@@ -226,4 +226,9 @@ export async function downloadCsv(path: string): Promise<Blob> {
     }
     throw error;
   }
+}
+
+
+export async function downloadCsv(path: string): Promise<Blob> {
+  return downloadFile(path);
 }
