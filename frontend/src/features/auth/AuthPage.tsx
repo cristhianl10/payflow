@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowRight, Check, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
-import { authenticate } from '../../services/api';
+import { authenticate, completeMfa } from '../../services/api';
 import { useSession } from '../../hooks/useSession';
 import { Logo, Notice } from '../../components/ui';
 
@@ -23,6 +23,8 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
   const queries = useQueryClient();
   const [error, setError] = useState<unknown>();
   const [visible, setVisible] = useState(false);
+  const [mfaChallenge, setMfaChallenge] = useState<string>();
+  const [mfaCode, setMfaCode] = useState('');
   const {
     register,
     handleSubmit,
@@ -32,6 +34,17 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
   if (session) return <Navigate to="/app" replace />;
   const onSubmit = handleSubmit(async (values) => {
     setError(undefined);
+    if (mfaChallenge) {
+      try {
+        await completeMfa(mfaChallenge, mfaCode.trim());
+        queries.clear();
+        const from = (location.state as { from?: string } | null)?.from;
+        navigate(from?.startsWith('/app') ? from : '/app', { replace: true });
+      } catch (failure) {
+        setError(failure);
+      }
+      return;
+    }
     const schema = z.object({
       email: z.string().trim().email('Enter a valid email address.').max(254),
       password: z
@@ -71,7 +84,7 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
       return;
     }
     try {
-      await authenticate(mode, {
+      const result = await authenticate(mode, {
         email: parsed.data.email,
         password: parsed.data.password,
         ...(registration
@@ -81,6 +94,10 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
             }
           : {}),
       });
+      if ('mfaRequired' in result) {
+        setMfaChallenge(result.challengeId);
+        return;
+      }
       queries.clear();
       const from = (location.state as { from?: string } | null)?.from;
       navigate(from?.startsWith('/app') ? from : '/app', { replace: true });
@@ -161,6 +178,26 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
           </p>
           <form onSubmit={onSubmit} noValidate>
             <Notice error={error} />
+            {mfaChallenge ? (
+              <div className="field">
+                <label htmlFor="mfa-code">Authenticator or recovery code</label>
+                <input
+                  id="mfa-code"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={32}
+                  value={mfaCode}
+                  onChange={(event) => setMfaCode(event.target.value)}
+                  required
+                  autoFocus
+                />
+                <span className="field-hint">
+                  Enter the 6-digit code from your authenticator app or one of
+                  your recovery codes.
+                </span>
+              </div>
+            ) : (
+              <>
             {registration && (
               <div className="form-row">
                 {field('firstName', 'First name', 'given-name')}
@@ -204,17 +241,23 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
                 </Link>
               )}
             </div>
+              </>
+            )}
             <button
               className="button button-primary button-full"
-              disabled={isSubmitting}
+              disabled={isSubmitting || (!!mfaChallenge && !mfaCode.trim())}
             >
               {isSubmitting
-                ? registration
-                  ? 'Creating your wallet…'
-                  : 'Signing in…'
-                : registration
-                  ? 'Create your account'
-                  : 'Sign in'}
+                ? mfaChallenge
+                  ? 'Verifying…'
+                  : registration
+                    ? 'Creating your wallet…'
+                    : 'Signing in…'
+                : mfaChallenge
+                  ? 'Verify and sign in'
+                  : registration
+                    ? 'Create your account'
+                    : 'Sign in'}
               <ArrowRight size={18} aria-hidden="true" />
             </button>
           </form>
