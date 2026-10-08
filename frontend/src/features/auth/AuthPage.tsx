@@ -198,49 +198,49 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
               </div>
             ) : (
               <>
-            {registration && (
-              <div className="form-row">
-                {field('firstName', 'First name', 'given-name')}
-                {field('lastName', 'Last name', 'family-name')}
-              </div>
-            )}
-            {field('email', 'Email address', 'email')}
-            <div className="field">
-              <label htmlFor="password">Password</label>
-              <div className="password-field">
-                <input
-                  id="password"
-                  type={visible ? 'text' : 'password'}
-                  autoComplete={
-                    registration ? 'new-password' : 'current-password'
-                  }
-                  {...register('password')}
-                  aria-invalid={!!errors.password}
-                  aria-describedby="password-help password-error"
-                />
-                <button
-                  type="button"
-                  className="icon-button"
-                  onClick={() => setVisible(!visible)}
-                  aria-label={visible ? 'Hide password' : 'Show password'}
-                >
-                  {visible ? <EyeOff size={19} /> : <Eye size={19} />}
-                </button>
-              </div>
-              <span id="password-help" className="field-hint">
-                {registration
-                  ? 'Use at least 10 characters. A passphrase works well.'
-                  : 'Use the password you created for PayFlow.'}
-              </span>
-              <span id="password-error" className="field-error">
-                {errors.password?.message}
-              </span>
-              {!registration && (
-                <Link className="field-hint" to="/forgot-password">
-                  Forgot your password?
-                </Link>
-              )}
-            </div>
+                {registration && (
+                  <div className="form-row">
+                    {field('firstName', 'First name', 'given-name')}
+                    {field('lastName', 'Last name', 'family-name')}
+                  </div>
+                )}
+                {field('email', 'Email address', 'email')}
+                <div className="field">
+                  <label htmlFor="password">Password</label>
+                  <div className="password-field">
+                    <input
+                      id="password"
+                      type={visible ? 'text' : 'password'}
+                      autoComplete={
+                        registration ? 'new-password' : 'current-password'
+                      }
+                      {...register('password')}
+                      aria-invalid={!!errors.password}
+                      aria-describedby="password-help password-error"
+                    />
+                    <button
+                      type="button"
+                      className="icon-button"
+                      onClick={() => setVisible(!visible)}
+                      aria-label={visible ? 'Hide password' : 'Show password'}
+                    >
+                      {visible ? <EyeOff size={19} /> : <Eye size={19} />}
+                    </button>
+                  </div>
+                  <span id="password-help" className="field-hint">
+                    {registration
+                      ? 'Use at least 10 characters. A passphrase works well.'
+                      : 'Use the password you created for PayFlow.'}
+                  </span>
+                  <span id="password-error" className="field-error">
+                    {errors.password?.message}
+                  </span>
+                  {!registration && (
+                    <Link className="field-hint" to="/forgot-password">
+                      Forgot your password?
+                    </Link>
+                  )}
+                </div>
               </>
             )}
             <button
