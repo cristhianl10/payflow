@@ -8,7 +8,12 @@ import {
   resendEmailVerification,
   updateSessionUser,
 } from '../services/api';
-import type { ActiveSession, MfaEnabled, MfaSetup, MfaStatus } from '../types/api';
+import type {
+  ActiveSession,
+  MfaEnabled,
+  MfaSetup,
+  MfaStatus,
+} from '../types/api';
 
 export function AccountPage() {
   const session = useSession();
@@ -101,7 +106,9 @@ export function AccountPage() {
     setNotice(undefined);
     setMfaBusy(true);
     try {
-      setMfaSetup(await api<MfaSetup>('/users/me/mfa/setup', { method: 'POST' }));
+      setMfaSetup(
+        await api<MfaSetup>('/users/me/mfa/setup', { method: 'POST' }),
+      );
       setRecoveryCodes([]);
       setMfaCode('');
     } catch (failure) {
