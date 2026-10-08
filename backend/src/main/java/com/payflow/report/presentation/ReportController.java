@@ -1,6 +1,5 @@
 package com.payflow.report.presentation;
 
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.UUID;
 
@@ -28,7 +27,7 @@ public class ReportController {
         byte[] pdf = reports.generatePdf(UUID.fromString(jwt.getSubject()), from, to);
         String filename = "payflow-statement-" + from + "-to-" + to + ".pdf";
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename="" + filename + """)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
                 .contentType(MediaType.APPLICATION_PDF)
                 .contentLength(pdf.length)
                 .body(pdf);
