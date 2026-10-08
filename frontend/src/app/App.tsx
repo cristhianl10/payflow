@@ -19,6 +19,7 @@ import { WalletPage } from '../features/wallet/WalletPage';
 import { AccountPage } from '../pages/AccountPage';
 import { BeneficiariesPage } from '../features/beneficiaries/BeneficiariesPage';
 import { NotificationsPage } from '../features/notifications/NotificationsPage';
+import { ReportsPage } from '../features/reports/ReportsPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -62,6 +63,7 @@ export function App() {
             <Route path="wallet" element={<WalletPage />} />
             <Route path="beneficiaries" element={<BeneficiariesPage />} />
             <Route path="notifications" element={<NotificationsPage />} />
+            <Route path="reports" element={<ReportsPage />} />
             <Route path="account" element={<AccountPage />} />
           </Route>
           <Route

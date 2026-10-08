@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   Bell,
   CalendarClock,
+  FileText,
   Menu,
   X,
 } from 'lucide-react';
@@ -31,6 +32,7 @@ const navigation = [
   { to: '/app/send', label: 'Send money', Icon: ArrowUpRight },
   { to: '/app/scheduled-transfers', label: 'Scheduled', Icon: CalendarClock },
   { to: '/app/transactions', label: 'Activity', Icon: List },
+  { to: '/app/reports', label: 'Reports', Icon: FileText },
   { to: '/app/notifications', label: 'Notifications', Icon: Bell },
   { to: '/app/beneficiaries', label: 'Beneficiaries', Icon: UsersRound },
   { to: '/app/wallet', label: 'Your wallet', Icon: Wallet },
