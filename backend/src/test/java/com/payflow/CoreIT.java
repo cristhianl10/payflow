@@ -45,6 +45,7 @@ class CoreIT {
     @Autowired com.payflow.scheduled.application.ScheduledTransferService scheduledTransfers;
     @Autowired com.payflow.scheduled.application.ScheduledTransferProcessor scheduledProcessor;
     @Autowired com.payflow.dashboard.application.DashboardQueries dashboard;
+    @Autowired com.payflow.report.application.StatementReportService reports;
     @Autowired JdbcTemplate jdbc;
     @Autowired ObjectMapper json;
     @Autowired PlatformTransactionManager manager;
@@ -267,6 +268,30 @@ class CoreIT {
         assertEquals("charlie@example.com", summary.topRecipients().getFirst().email());
         assertEquals(1, summary.upcomingTransfers().size());
         assertEquals(1, summary.scheduledStatus().scheduled());
+    }
+
+    @Test void statementPdfUsesLedgerBalancesAndPeriodMovements() {
+        var alice = register("alice");
+        register("bob");
+
+        transfers.send(alice.userId(), UUID.randomUUID(), "bob@example.com",
+                "125.00", "USD", "Statement test", "STM-001");
+
+        var today = java.time.LocalDate.now(java.time.ZoneOffset.UTC);
+        var statement = reports.statement(alice.userId(), today.minusDays(1), today.plusDays(1));
+        assertEquals("0.00", statement.openingBalance());
+        assertEquals("9875.00", statement.closingBalance());
+        assertEquals("125.00", statement.totalSent());
+        assertEquals("0.00", statement.totalReceived());
+        assertEquals(2, statement.movements().size());
+
+        byte[] pdf = reports.generatePdf(alice.userId(), today.minusDays(1), today.plusDays(1));
+        assertTrue(pdf.length > 500);
+        assertEquals("%PDF", new String(pdf, 0, 4, java.nio.charset.StandardCharsets.US_ASCII));
+
+        var invalid = assertThrows(BusinessException.class,
+                () -> reports.generatePdf(alice.userId(), today, today.minusDays(1)));
+        assertEquals("INVALID_REPORT_RANGE", invalid.code());
     }
 
     @Test void atomicTransferAndIdempotencyReturnIdenticalReceipt() throws Exception {
