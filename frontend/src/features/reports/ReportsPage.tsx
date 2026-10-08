@@ -54,9 +54,7 @@ export function ReportsPage() {
         <div className="section-heading">
           <div>
             <h2>Account statement</h2>
-            <p>
-              Includes opening and closing balances, totals and movements.
-            </p>
+            <p>Includes opening and closing balances, totals and movements.</p>
           </div>
           <FileText size={22} aria-hidden="true" />
         </div>
