@@ -128,3 +128,19 @@ export type DashboardSummary = {
     scheduled: number;
   };
 };
+
+export type MfaChallenge = {
+  mfaRequired: true;
+  challengeId: string;
+};
+export type MfaStatus = {
+  enabled: boolean;
+};
+export type MfaSetup = {
+  secret: string;
+  otpauthUri: string;
+  qrDataUrl: string;
+};
+export type MfaEnabled = {
+  recoveryCodes: string[];
+};
