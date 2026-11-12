@@ -21,6 +21,9 @@ server:
     include-stacktrace: never
     include-binding-errors: never
 management:
+  health:
+    mail:
+      enabled: ${MANAGEMENT_HEALTH_MAIL_ENABLED:false}
   endpoints:
     web:
       exposure:

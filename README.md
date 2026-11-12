@@ -37,7 +37,7 @@ The transfer flow between two sandbox accounts was tested successfully. Accounts
 - Frontend: [payflow-alpha-brown.vercel.app](https://payflow-alpha-brown.vercel.app)
 - Backend: [payflow-backend-p76b.onrender.com](https://payflow-backend-p76b.onrender.com)
 - Health check: [actuator/health](https://payflow-backend-p76b.onrender.com/actuator/health)
-- Database: PostgreSQL managed by Render.
+- Database: PostgreSQL hosted on Supabase (connection through the Supabase session pooler).
 - Backend: Docker image deployed on Render.
 - Frontend: React production build deployed on Vercel.
 
